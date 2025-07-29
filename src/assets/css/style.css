@@ -1,0 +1,113 @@
+/* Basic styling */
+
+:root {
+  /* Colors */
+  --black: #09090c;
+  --grey: #a4b2bc;
+  --white: #fff;
+  --background: rgba(137, 171, 245, 0.37);
+}
+
+body {
+  background-color: #181818;
+  background-repeat: no-repeat;
+  background-size: cover;
+  height: 100%;
+  width: 100%;
+  margin: 0px;
+  -webkit-user-select: none; /* Safari */
+  -ms-user-select: none; /* IE 10 and IE 11 */
+  user-select: none; /* Standard syntax */
+}
+
+.background {
+  display: table-cell;
+  vertical-align: middle;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: #ffffffea;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: #c2c9d2;
+}
+
+.logger {
+  background-color: #2c2c2c;
+  border-radius: 10px;
+  color: white;
+  font-family: 'Roboto', sans-serif;
+  max-width: 400px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.logger h3 {
+  margin: 0;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 1.5em;
+}
+
+.logger ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+}
+
+.logger li {
+  background-color: #1c1c1c;
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 5px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.config {
+  background-color: #2c2c2c;
+  color: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.config h3 {
+  margin: 0;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 1.5em;
+}
+
+.config label {
+  font-weight: 500;
+}
+
+.form-control {
+  background-color: #1c1c1c;
+  border: 1px solid #444;
+  border-radius: 5px;
+  color: white;
+}
+
+.form-control:focus {
+  background-color: #1c1c1c;
+  border-color: #888;
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.1);
+  outline: none;
+  color: white;
+}
+
+.container {
+  margin-top: 1rem;
+  background-color: #222222;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}

@@ -1,0 +1,64 @@
+/* Update race-item styles */
+.race-item {
+  cursor: pointer;
+  background-color: #1c1c1c;
+  border-radius: 5px;
+  padding: 10px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 200px; /* Adjust the width to your preference */
+}
+
+.race-item .details {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.race-item .details h4 {
+  margin-bottom: 5px;
+}
+
+.race-item img {
+  border-radius: 5px;
+  margin-bottom: 10px;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* Update race-list styles */
+.race-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  padding: 20px;
+}
+
+.add-race-button {
+  margin: auto;
+  background-color: #4a4a4a;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 5px 15px;
+  transition: background-color 0.2s;
+  margin-bottom: 20px;
+}
+
+.add-race-button:hover {
+  background-color: #6a6a6a;
+}
+
+.add-race-button:focus {
+  outline: none;
+}

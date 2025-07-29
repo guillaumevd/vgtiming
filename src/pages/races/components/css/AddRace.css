@@ -1,0 +1,64 @@
+.add-race {
+  background-color: #2c2c2c;
+  color: white;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin: auto;
+}
+
+.add-race h3 {
+  margin: 0;
+  margin-bottom: 10px;
+  font-weight: 600;
+  font-size: 1.5em;
+}
+
+.add-race label {
+  font-weight: 500;
+}
+
+.add-race input,
+.add-race select {
+  background-color: #1c1c1c;
+  border: 1px solid #444;
+  border-radius: 5px;
+  color: white;
+  width: 100%;
+  padding: 5px 10px;
+  margin-bottom: 10px;
+}
+
+.add-race input:focus,
+.add-race select:focus {
+  background-color: #1c1c1c;
+  border-color: #888;
+  box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.1);
+  outline: none;
+  color: white;
+}
+
+.add-race .form-group {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 10px;
+}
+
+.add-race button {
+  background-color: #4a4a4a;
+  border: none;
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  padding: 5px 15px;
+  transition: background-color 0.2s;
+}
+
+.add-race button:hover {
+  background-color: #6a6a6a;
+}
+
+.add-race button:focus {
+  outline: none;
+}
