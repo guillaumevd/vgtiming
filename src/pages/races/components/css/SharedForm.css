@@ -1,0 +1,48 @@
+/* Shared form styles for dark theme */
+
+.form-label.required::after {
+  content: " *";
+  color: #fc8181;
+  font-weight: bold;
+}
+
+.btn-outline-secondary {
+  background-color: transparent;
+  border: 2px solid #4a5568;
+  color: #e2e8f0;
+}
+
+.btn-outline-secondary:hover {
+  background-color: #4a5568;
+  border-color: #4a5568;
+  color: #ffffff;
+}
+
+/* Input group styling for dark theme */
+.input-group .form-control {
+  border-right: none;
+}
+
+.input-group .form-control:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+}
+
+.input-group .form-select {
+  background-color: #1a202c;
+  border: 2px solid #4a5568;
+  border-left: none;
+  color: #e2e8f0;
+}
+
+.input-group .form-select:focus {
+  border-color: #63b3ed;
+  box-shadow: none;
+  background-color: #1a202c;
+}
+
+/* Spinner for loading states */
+.spinner-border-sm {
+  width: 0.875rem;
+  height: 0.875rem;
+}

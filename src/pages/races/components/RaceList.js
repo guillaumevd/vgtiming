@@ -30,8 +30,8 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
     <div className="race-list-container">
       <div className="race-list-header">
         <h1>Gestion des Courses</h1>
-        <button className="btn btn-primary add-race-btn" onClick={handleAddClick}>
-          <i className="fas fa-plus me-2"></i>
+        <button className="btn-unified btn-primary-unified add-race-btn" onClick={handleAddClick}>
+          <i className="fas fa-plus"></i>
           Nouvelle Course
         </button>
       </div>
@@ -43,7 +43,8 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
           </div>
           <h3>Aucune course trouvée</h3>
           <p>Commencez par créer votre première course</p>
-          <button className="btn btn-primary" onClick={handleAddClick}>
+          <button className="btn-unified btn-primary-unified" onClick={handleAddClick}>
+            <i className="fas fa-plus"></i>
             Créer une course
           </button>
         </div>
@@ -81,7 +82,7 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
               
               <div className="race-actions">
                 <button 
-                  className="btn btn-outline-primary btn-sm"
+                  className="btn-unified btn-secondary-unified"
                   onClick={(e) => handleRaceClick(race, e)}
                   title="Modifier la course"
                 >
@@ -89,7 +90,7 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
                   Modifier
                 </button>
                 <button 
-                  className="btn btn-secondary btn-sm"
+                  className="btn-unified btn-success-unified"
                   onClick={(e) => handleParticipantsClick(race, e)}
                   title="Gérer les participants"
                 >

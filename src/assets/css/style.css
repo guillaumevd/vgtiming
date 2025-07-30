@@ -9,7 +9,7 @@
 }
 
 body {
-  background-color: #181818;
+  background-color: #1a202c;
   background-repeat: no-repeat;
   background-size: cover;
   height: 100%;
@@ -106,8 +106,24 @@ h1, h2, h3, h4, h5, h6 {
 
 .container {
   margin-top: 1rem;
-  background-color: #222222;
+  background-color: transparent;
   padding: 20px;
   border-radius: 10px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
+}
+
+/* Fix Bootstrap containers for race pages */
+.container-fluid {
+  background-color: transparent !important;
+  padding: 0 !important;
+}
+
+.row {
+  background-color: transparent !important;
+  margin: 0 !important;
+}
+
+.col, .col-12 {
+  background-color: transparent !important;
+  padding: 0 !important;
 }

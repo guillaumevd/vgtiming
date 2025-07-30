@@ -1,40 +1,58 @@
-/* Modern styling for Add Race component */
+/* Modern dark styling for Add Race component - Full width */
 
 .add-race-container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
+  padding: 2rem;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #1a202c;
+  color: #e2e8f0;
+}
+
+/* Ensure no Bootstrap default backgrounds */
+.add-race-container .card,
+.add-race-container .card-header,
+.add-race-container .card-body,
+.add-race-container .card-footer {
+  background-color: transparent !important;
 }
 
 .card {
   border: none;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background: white;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: #e2e8f0;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .card-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border-radius: 12px 12px 0 0;
-  padding: 20px 30px;
+  background: transparent;
+  color: #ffffff;
+  border-radius: 0;
+  padding: 0 0 2rem 0;
   border: none;
+  border-bottom: 2px solid #4a5568;
+  margin-bottom: 2rem;
 }
 
-.card-header h2 {
+.card-header h3 {
   margin: 0;
+  color: #e2e8f0;
   font-weight: 600;
-  font-size: 1.5rem;
+  font-size: 2rem;
 }
 
 .card-body {
-  padding: 30px;
+  padding: 0;
+  background: transparent;
 }
 
 .form-section {
   margin-bottom: 30px;
   padding-bottom: 20px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #4a5568;
 }
 
 .form-section:last-child {
@@ -43,7 +61,7 @@
 }
 
 .form-section h4 {
-  color: #495057;
+  color: #e2e8f0;
   font-weight: 600;
   font-size: 1.2rem;
   margin-bottom: 20px;
@@ -55,7 +73,7 @@
   content: "";
   width: 4px;
   height: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #63b3ed 0%, #4299e1 100%);
   margin-right: 12px;
   border-radius: 2px;
 }
@@ -66,40 +84,65 @@
 
 .form-group label {
   font-weight: 600;
-  color: #495057;
+  color: #e2e8f0;
   margin-bottom: 8px;
   display: block;
   font-size: 0.95rem;
 }
 
+.form-group label.required::after {
+  content: " *";
+  color: #fc8181;
+  font-weight: bold;
+}
+
 .form-control {
-  border: 2px solid #e9ecef;
+  border: 2px solid #4a5568;
   border-radius: 8px;
   padding: 12px 16px;
   font-size: 0.95rem;
   transition: all 0.3s ease;
-  background-color: #f8f9fa;
+  background-color: #1a202c;
+  color: #e2e8f0;
+}
+
+.form-select {
+  border: 2px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background-color: #1a202c;
+  color: #e2e8f0;
+  cursor: pointer;
 }
 
 .form-control:focus {
-  border-color: #667eea;
-  box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-  background-color: white;
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+  background-color: #1a202c;
+  outline: none;
+}
+
+.form-select:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+  background-color: #1a202c;
   outline: none;
 }
 
 .form-control.is-invalid {
-  border-color: #dc3545;
-  background-color: #fff5f5;
+  border-color: #fc8181;
+  background-color: #1a202c;
 }
 
 .form-control.is-invalid:focus {
-  border-color: #dc3545;
-  box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+  border-color: #fc8181;
+  box-shadow: 0 0 0 0.2rem rgba(252, 129, 129, 0.25);
 }
 
 .invalid-feedback {
-  color: #dc3545;
+  color: #fc8181;
   font-size: 0.875rem;
   margin-top: 5px;
   display: block;
@@ -120,99 +163,87 @@ textarea.form-control {
   justify-content: flex-end;
   margin-top: 30px;
   padding-top: 20px;
-  border-top: 1px solid #e9ecef;
+  border-top: 2px solid #4a5568;
 }
 
-.btn {
-  padding: 12px 30px;
-  border-radius: 8px;
+/* Unified button style */
+.btn-unified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 12px 24px;
   font-weight: 600;
-  border: none;
+  border: 2px solid;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   font-size: 0.95rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
 }
 
-.btn:disabled {
+.btn-unified:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.btn-unified:active {
+  transform: translateY(0);
+}
+
+.btn-unified:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+  transform: none;
 }
 
-.btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+/* Button variants */
+.btn-primary-unified {
+  background: #1a202c;
+  border-color: #63b3ed;
+  color: #63b3ed;
 }
 
-.btn-primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+.btn-primary-unified:hover:not(:disabled) {
+  background: #63b3ed;
+  color: #1a202c;
 }
 
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
+.btn-secondary-unified {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
 }
 
-.btn-secondary:hover:not(:disabled) {
-  background-color: #5a6268;
-  transform: translateY(-1px);
+.btn-secondary-unified:hover:not(:disabled) {
+  background: #4a5568;
+  color: #ffffff;
 }
 
-.alert {
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 20px;
-  border: none;
+.btn-outline-secondary-unified {
+  background: transparent;
+  border-color: #4a5568;
+  color: #e2e8f0;
 }
 
-.alert-danger {
-  background-color: #f8d7da;
-  color: #721c24;
-  border-left: 4px solid #dc3545;
+.btn-outline-secondary-unified:hover:not(:disabled) {
+  background: #4a5568;
+  color: #ffffff;
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
   .add-race-container {
-    padding: 10px;
-  }
-  
-  .card-body {
-    padding: 20px;
+    padding: 1rem;
   }
   
   .form-actions {
     flex-direction: column;
   }
   
-  .btn {
+  .btn-unified {
     width: 100%;
     justify-content: center;
   }
-}
-
-/* Loading state */
-.btn:disabled {
-  position: relative;
-}
-
-.btn:disabled:after {
-  content: "";
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  margin: auto;
-  border: 2px solid transparent;
-  border-top-color: currentColor;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
 }

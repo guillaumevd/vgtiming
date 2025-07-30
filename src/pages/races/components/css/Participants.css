@@ -1,9 +1,29 @@
-/* Styling for Participants component */
+/* Dark theme participants styling - Full width */
 
 .participants-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  padding: 2rem;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #1a202c;
+  color: #e2e8f0;
+}
+
+/* Ensure no Bootstrap default backgrounds */
+.participants-container .card,
+.participants-container .card-header,
+.participants-container .card-body,
+.participants-container .card-footer {
+  background-color: transparent !important;
+}
+
+.card {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+  color: #e2e8f0;
+  box-sizing: border-box;
 }
 
 .card-header {
@@ -12,6 +32,24 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 15px;
+  background: transparent;
+  border-radius: 0;
+  padding: 0 0 2rem 0;
+  border: none;
+  border-bottom: 2px solid #4a5568;
+  margin-bottom: 2rem;
+}
+
+.card-header h2 {
+  margin: 0;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 2rem;
+}
+
+.card-body {
+  padding: 0;
+  background: transparent;
 }
 
 .race-info {
@@ -26,30 +64,39 @@
   font-size: 0.85rem;
   font-weight: 600;
   text-transform: capitalize;
+  border: 1px solid;
 }
 
 .badge-primary {
-  background-color: #667eea;
-  color: white;
+  background-color: rgba(99, 179, 237, 0.3) !important;
+  color: #63b3ed !important;
+  border-color: #4299e1 !important;
 }
 
 .participant-count {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 0.9rem;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  border: 1px solid;
+  background-color: rgba(72, 187, 120, 0.1);
+  color: #48bb78;
+  border-color: #38a169;
 }
 
 .add-participant-section,
 .edit-participant-section {
-  background-color: #f8f9fa;
+  background-color: transparent;
   border-radius: 12px;
   padding: 25px;
   margin-bottom: 30px;
-  border: 2px dashed #dee2e6;
+  border: 2px solid #4a5568;
 }
 
 .add-participant-section h4,
 .edit-participant-section h4 {
-  color: #495057;
+  color: #e2e8f0;
   margin-bottom: 20px;
   font-weight: 600;
 }
@@ -60,10 +107,39 @@
 
 .participant-form label {
   font-weight: 600;
-  color: #495057;
+  color: #e2e8f0;
   margin-bottom: 8px;
   display: block;
   font-size: 0.9rem;
+}
+
+.participant-form .form-control {
+  border: 2px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  background-color: #1a202c;
+  color: #e2e8f0;
+}
+
+.participant-form .form-control:focus {
+  border-color: #63b3ed;
+  box-shadow: 0 0 0 0.2rem rgba(99, 179, 237, 0.25);
+  background-color: #1a202c;
+  outline: none;
+}
+
+.participant-form .form-control.is-invalid {
+  border-color: #fc8181;
+  background-color: #1a202c;
+}
+
+.participant-form .invalid-feedback {
+  color: #fc8181;
+  font-size: 0.875rem;
+  margin-top: 5px;
+  display: block;
 }
 
 .participants-list {
@@ -76,38 +152,39 @@
   align-items: center;
   margin-bottom: 25px;
   padding-bottom: 15px;
-  border-bottom: 2px solid #e9ecef;
+  border-bottom: 2px solid #4a5568;
 }
 
 .list-header h4 {
   margin: 0;
-  color: #495057;
+  color: #e2e8f0;
   font-weight: 600;
 }
 
 .empty-state {
   text-align: center;
   padding: 40px;
-  color: #6c757d;
+  color: #718096;
 }
 
 .empty-state p {
   margin-bottom: 20px;
   font-size: 1.1rem;
+  color: #a0aec0;
 }
 
 .table {
   margin-bottom: 0;
-  background: white;
+  background: transparent;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #4a5568;
 }
 
 .table thead th {
-  background-color: #f8f9fa;
-  border-bottom: 2px solid #dee2e6;
-  color: #495057;
+  background-color: #4a5568;
+  border-bottom: 2px solid #2d3748;
+  color: #e2e8f0;
   font-weight: 600;
   padding: 15px 12px;
   font-size: 0.9rem;
@@ -118,40 +195,42 @@
 .table tbody td {
   padding: 15px 12px;
   vertical-align: middle;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+  background-color: #2d3748;
 }
 
 .table tbody tr:hover {
-  background-color: #f8f9fa;
+  background-color: #4a5568;
 }
 
 .table tbody tr.inactive {
   opacity: 0.6;
-  background-color: #f8f9fa;
+  background-color: #374151;
 }
 
 .table tbody tr.inactive:hover {
-  background-color: #e9ecef;
+  background-color: #4a5568;
 }
 
 .participant-number {
   font-weight: 700;
-  color: #667eea;
+  color: #63b3ed;
   font-size: 1.1rem;
 }
 
 .participant-name {
   font-weight: 600;
-  color: #495057;
+  color: #e2e8f0;
 }
 
 .epc-tag {
   font-family: 'Courier New', monospace;
   font-size: 0.9rem;
-  background-color: #f8f9fa;
+  background-color: #4a5568;
   padding: 4px 8px;
   border-radius: 4px;
-  color: #495057;
+  color: #e2e8f0;
 }
 
 .status-badge {
@@ -164,13 +243,15 @@
 }
 
 .status-badge.active {
-  background-color: #d4edda;
-  color: #155724;
+  background-color: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid #48bb78;
 }
 
 .status-badge.inactive {
-  background-color: #f8d7da;
-  color: #721c24;
+  background-color: rgba(252, 129, 129, 0.2);
+  color: #fc8181;
+  border: 1px solid #fc8181;
 }
 
 .actions {
@@ -179,56 +260,87 @@
   flex-wrap: wrap;
 }
 
-.btn-sm {
+/* Small unified buttons for participant actions */
+.btn-unified-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
   padding: 6px 12px;
-  font-size: 0.8rem;
+  font-weight: 600;
+  border: 2px solid;
   border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.8rem;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
 }
 
-.btn-outline-primary {
-  border-color: #667eea;
-  color: #667eea;
+.btn-unified-sm:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.btn-outline-primary:hover {
-  background-color: #667eea;
-  color: white;
+.btn-unified-sm:active {
+  transform: translateY(0);
 }
 
-.btn-outline-success {
-  border-color: #28a745;
-  color: #28a745;
+.btn-unified-sm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
-.btn-outline-success:hover {
-  background-color: #28a745;
-  color: white;
+/* Small button variants */
+.btn-primary-unified-sm {
+  background: #1a202c;
+  border-color: #63b3ed;
+  color: #63b3ed;
 }
 
-.btn-outline-warning {
-  border-color: #ffc107;
-  color: #856404;
+.btn-primary-unified-sm:hover:not(:disabled) {
+  background: #63b3ed;
+  color: #1a202c;
 }
 
-.btn-outline-warning:hover {
-  background-color: #ffc107;
-  color: #212529;
+.btn-success-unified-sm {
+  background: #1a202c;
+  border-color: #48bb78;
+  color: #48bb78;
 }
 
-.btn-outline-danger {
-  border-color: #dc3545;
-  color: #dc3545;
+.btn-success-unified-sm:hover:not(:disabled) {
+  background: #48bb78;
+  color: #1a202c;
 }
 
-.btn-outline-danger:hover {
-  background-color: #dc3545;
-  color: white;
+.btn-warning-unified-sm {
+  background: #1a202c;
+  border-color: #ed8936;
+  color: #ed8936;
+}
+
+.btn-warning-unified-sm:hover:not(:disabled) {
+  background: #ed8936;
+  color: #1a202c;
+}
+
+.btn-danger-unified-sm {
+  background: #1a202c;
+  border-color: #fc8181;
+  color: #fc8181;
+}
+
+.btn-danger-unified-sm:hover:not(:disabled) {
+  background: #fc8181;
+  color: #1a202c;
 }
 
 .card-footer {
-  background-color: #f8f9fa;
-  border-top: 1px solid #dee2e6;
-  padding: 20px 30px;
+  background-color: transparent;
+  border-top: 1px solid #4a5568;
+  padding: 20px 0;
 }
 
 .footer-actions {
@@ -237,21 +349,136 @@
   align-items: center;
 }
 
-.btn-success {
-  background-color: #28a745;
-  border-color: #28a745;
-  color: white;
+/* Unified button style */
+.btn-unified {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 12px 24px;
+  font-weight: 600;
+  border: 2px solid;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
 }
 
-.btn-success:hover:not(:disabled) {
-  background-color: #218838;
-  border-color: #1e7e34;
+.btn-unified:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.btn-unified:active {
+  transform: translateY(0);
+}
+
+.btn-unified:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Button variants */
+.btn-primary-unified {
+  background: #1a202c;
+  border-color: #63b3ed;
+  color: #63b3ed;
+}
+
+.btn-primary-unified:hover:not(:disabled) {
+  background: #63b3ed;
+  color: #1a202c;
+}
+
+.btn-secondary-unified {
+  background: #1a202c;
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.btn-secondary-unified:hover:not(:disabled) {
+  background: #4a5568;
+  color: #ffffff;
+}
+
+.btn-success-unified {
+  background: #1a202c;
+  border-color: #48bb78;
+  color: #48bb78;
+}
+
+.btn-success-unified:hover:not(:disabled) {
+  background: #48bb78;
+  color: #1a202c;
+}
+
+.btn-warning-unified {
+  background: #1a202c;
+  border-color: #ed8936;
+  color: #ed8936;
+}
+
+.btn-warning-unified:hover:not(:disabled) {
+  background: #ed8936;
+  color: #1a202c;
+}
+
+.btn-danger-unified {
+  background: #1a202c;
+  border-color: #fc8181;
+  color: #fc8181;
+}
+
+.btn-danger-unified:hover:not(:disabled) {
+  background: #fc8181;
+  color: #1a202c;
+}
+
+.btn-danger-unified {
+  background: #1a202c;
+  border-color: #fc8181;
+  color: #fc8181;
+}
+
+.btn-danger-unified:hover:not(:disabled) {
+  background: #fc8181;
+  color: #1a202c;
+}
+
+/* Button sizes */
+.btn-unified.btn-sm {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+}
+
+.btn-unified.btn-lg {
+  padding: 16px 32px;
+  font-size: 1.1rem;
+}
+
+/* Actions column */
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.footer-actions {
+  display: flex;
+  gap: 15px;
+  justify-content: space-between;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 2px solid #4a5568;
 }
 
 /* Responsive design */
 @media (max-width: 768px) {
   .participants-container {
-    padding: 10px;
+    padding: 1rem;
   }
   
   .card-header {
@@ -275,15 +502,16 @@
     gap: 15px;
   }
   
-  .footer-actions .btn {
+  .footer-actions .btn-unified {
     width: 100%;
+    justify-content: center;
   }
   
   .actions {
     flex-direction: column;
   }
   
-  .actions .btn {
+  .actions .btn-unified {
     width: 100%;
     text-align: center;
   }

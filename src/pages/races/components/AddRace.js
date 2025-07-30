@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { RACE_TYPES, DURATION_TYPES } from '../../../constants/raceConstants';
+import { showToast } from '../../../utils/notifications';
 import './css/AddRace.css';
+import './css/SharedForm.css';
 
 const AddRace = ({ onRaceAdded, onCancel }) => {
   const [formData, setFormData] = useState({
@@ -78,12 +80,14 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
         participants: []
       };
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Save race using API
+      await window.raceAPI.add(raceData);
       
+      showToast('Course créée avec succès !', 'success');
       onRaceAdded(raceData);
     } catch (error) {
       console.error('Error adding race:', error);
+      showToast('Erreur lors de la création de la course', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -99,10 +103,10 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
           </h3>
           <button 
             type="button" 
-            className="btn btn-outline-secondary"
+            className="btn-unified btn-outline-secondary-unified"
             onClick={onCancel}
           >
-            <i className="fas fa-times me-1"></i>
+            <i className="fas fa-times"></i>
             Annuler
           </button>
         </div>
@@ -257,7 +261,7 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
             <div className="d-flex justify-content-end gap-2">
               <button 
                 type="button" 
-                className="btn btn-secondary"
+                className="btn-unified btn-secondary-unified"
                 onClick={onCancel}
                 disabled={isSubmitting}
               >
@@ -265,7 +269,7 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
               </button>
               <button 
                 type="submit" 
-                className="btn btn-primary"
+                className="btn-unified btn-primary-unified"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
@@ -275,7 +279,7 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
                   </>
                 ) : (
                   <>
-                    <i className="fas fa-save me-1"></i>
+                    <i className="fas fa-save"></i>
                     Créer la course
                   </>
                 )}
