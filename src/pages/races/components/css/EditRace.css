@@ -17,27 +17,16 @@
   background-color: transparent !important;
 }
 
-.edit-race-container .card {
-  border: none;
-  border-radius: 0;
-  box-shadow: none;
-  background: transparent;
-  color: #e2e8f0;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.edit-race-container .card-header {
-  background: transparent;
-  color: #ffffff;
-  border-radius: 0;
-  padding: 0 0 2rem 0;
-  border: none;
-  border-bottom: 2px solid #4a5568;
+.race-list-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #4a5568;
 }
 
-.edit-race-container .card-header h3 {
+.race-list-header h1 {
   margin: 0;
   color: #e2e8f0;
   font-weight: 600;

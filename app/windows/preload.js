@@ -36,3 +36,10 @@ contextBridge.exposeInMainWorld('raceAPI', {
 contextBridge.exposeInMainWorld('electronAPI', {
   fetch: async (url) => await ipcRenderer.invoke('fetch', url),
 });
+
+contextBridge.exposeInMainWorld('windowControls', {
+  minimize: () => ipcRenderer.send('window-minimize'),
+  maximize: () => ipcRenderer.send('window-maximize'),
+  close: () => ipcRenderer.send('window-close'),
+  isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+});

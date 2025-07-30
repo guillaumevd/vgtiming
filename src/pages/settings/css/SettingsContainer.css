@@ -1,0 +1,57 @@
+/* SettingsContainer.css */
+
+.settings-container {
+  padding: 2rem;
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  background: #1a202c;
+  color: #e2e8f0;
+  box-sizing: border-box;
+}
+
+.settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #4a5568;
+}
+
+.settings-header h1 {
+  margin: 0;
+  color: #e2e8f0;
+  font-weight: 600;
+  font-size: 2rem;
+}
+
+.settings-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.settings-section {
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  overflow: visible;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+@media (max-width: 768px) {
+  .settings-header {
+    padding: 1.5rem 1.5rem 1rem 1.5rem;
+  }
+  
+  .settings-content {
+    padding: 0 1.5rem 1.5rem;
+  }
+  
+  .settings-header h1 {
+    font-size: 1.75rem;
+  }
+}

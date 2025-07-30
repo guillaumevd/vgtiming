@@ -1,6 +1,6 @@
 {
   "name": "vg-timing",
-  "version": "0.0.10",
+  "version": "0.0.3",
   "description": "VG-Timing - Application de chronométrage professionnel",
   "author": {
     "name": "Guillaume Vandriessche",
@@ -10,7 +10,7 @@
   "homepage": "./",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/guillaumevd/vg-timing.git"
+    "url": "git+https://github.com/guillaumevd/vgtiming.git"
   },
   "scripts": {
     "build": "rimraf build dist && yarn version --patch && react-scripts build && electron-builder",

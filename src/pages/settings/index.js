@@ -1,20 +1,15 @@
-import Config from './components/config.js';
-import Logger from './components/logger.js';
+import React, { useEffect } from 'react';
+import SettingsContainer from './components/SettingsContainer';
+import { useLogContext } from '../../logger/LogContext';
 
 const Settings = (props) => {
-  return (
-    <div className="container">
-      <h1 className="text-center my-5">Settings Page</h1>
-      <div className="row">
-        <div className="col">
-          <Config />
-        </div>
-        <div className="col">
-          <Logger />
-        </div>
-      </div>
-    </div>
-  );
+  const { addLogMessage } = useLogContext();
+
+  useEffect(() => {
+    addLogMessage('Settings page accessed', 'info');
+  }, []); // Pas de dépendance pour éviter la boucle
+
+  return <SettingsContainer />;
 }
  
 export default Settings;

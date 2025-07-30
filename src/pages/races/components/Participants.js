@@ -213,21 +213,21 @@ const Participants = ({ race, onBack, onSave }) => {
 
   return (
     <div className="participants-container">
-      <div className="card">
-        <div className="card-header">
-          <h2>Participants - {race.name}</h2>
-          <div className="race-info">
-            <span className="badge badge-primary">{race.type}</span>
-            <span className="participant-count">{participants.length} participant(s)</span>
-          </div>
+      <div className="race-list-header">
+        <h1>Participants - {race.name}</h1>
+        <div className="race-info">
+          <span className="badge badge-primary">{race.type}</span>
+          <span className="participant-count">{participants.length} participant(s)</span>
         </div>
-        
+      </div>
+      
+      <div className="content-wrapper">
         <div className="card-body">
-          {/* Add participant form */}
-          {showAddForm && (
-            <div className="add-participant-section">
-              <h4>Ajouter un participant</h4>
-              <ParticipantForm 
+        {/* Add participant form */}
+        {showAddForm && (
+          <div className="add-participant-section">
+            <h4>Ajouter un participant</h4>
+            <ParticipantForm 
                 participant={newParticipant}
                 onChange={setNewParticipant}
               />

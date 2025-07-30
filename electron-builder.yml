@@ -2,7 +2,7 @@ appId: 'com.vgtiming.app'
 productName: 'VG-Timing'
 artifactName: '${productName}-setup-${version}.${ext}'
 
-copyright: 'Copyright © 2022 Guillaume Vandriessche'
+copyright: 'Copyright © 2025 Guillaume Vandriessche'
 
 asar: true
 compression: 'maximum'
@@ -39,8 +39,8 @@ linux:
   target: 'AppImage'
   maintainer: 'Guillaume Vandriessche'
   vendor: 'Guillaume Vandriessche'
-  synopsis: 'Group chat app with react'
-  description: 'Group chat app with react description'
+  synopsis: 'VG-Timing'
+  description: 'Race timing application for motorsport enthusiasts'
   category: 'Game'
 
 

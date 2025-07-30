@@ -13,7 +13,7 @@ import './assets/css/override.css'
 import { LogProvider } from './logger/LogContext';
 
 // Components
-import { Home, Timing, Races, News, Settings, Sidebar } from './components';
+import { Home, Timing, Races, News, Settings, Sidebar, AppTitleBar } from './components';
 
 // Constants
 import { API_ENDPOINTS, ROUTES } from './constants';
@@ -22,11 +22,12 @@ import { API_ENDPOINTS, ROUTES } from './constants';
 import { fetchManifest } from './utils';
 
 const Pages = styled.div`
-  width: 90%;
-  height: 100%;
+  width: calc(100% - 4.5rem);
+  height: calc(100vh - 28px);
   display: flex;
   z-index: 0;
-  margin: auto;
+  margin-left: 4.5rem;
+  margin-top: 28px;
   h1 {
     font-size: calc(2rem + 2vw);
     background: linear-gradient(to right, #803bec 30%, #1b1b1b 100%);
@@ -57,6 +58,7 @@ function App() {
   // Toujours afficher l'application (avec ou sans manifest)
   return (
     <>
+      <AppTitleBar />
       <LogProvider>
         <Sidebar/>
         <Pages>

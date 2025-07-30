@@ -32,6 +32,8 @@ function createWindow() {
         minWidth: 980,
         minHeight: 552,
         resizable: true,
+        frame: false,
+        titleBarStyle: 'hidden',
         icon: path.join(electron.app.getAppPath(), 'build', 'assets', 'images', 'icon') + `.${os.platform() === "win32" ? "ico" : "png"}`,
         show: false,
         webPreferences: {
@@ -74,6 +76,29 @@ function createWindow() {
         if (mainWindow) {
             mainWindow.show();
         }
+    });
+
+    // Gestionnaires des contrôles de fenêtre
+    electron.ipcMain.on('window-minimize', () => {
+        if (mainWindow) mainWindow.minimize();
+    });
+
+    electron.ipcMain.on('window-maximize', () => {
+        if (mainWindow) {
+            if (mainWindow.isMaximized()) {
+                mainWindow.unmaximize();
+            } else {
+                mainWindow.maximize();
+            }
+        }
+    });
+
+    electron.ipcMain.on('window-close', () => {
+        if (mainWindow) mainWindow.close();
+    });
+
+    electron.ipcMain.handle('window-is-maximized', () => {
+        return mainWindow ? mainWindow.isMaximized() : false;
     });
 }
 

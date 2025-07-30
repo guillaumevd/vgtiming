@@ -116,38 +116,35 @@ const EditRace = ({ race, onRaceUpdated, onRaceDeleted, onRaceCanceled }) => {
 
   return (
     <div className="edit-race-container">
-      <div className="card">
-        <div className="card-header d-flex justify-content-between align-items-center">
-          <h3 className="mb-0">
-            <i className="fas fa-edit me-2"></i>
-            Modifier la Course
-          </h3>
-          <button 
-            type="button" 
-            className="btn-unified btn-outline-secondary-unified"
-            onClick={onRaceCanceled}
-          >
-            <i className="fas fa-times"></i>
-            Annuler
-          </button>
-        </div>
-        
+      <div className="race-list-header">
+        <h1>Modifier la Course</h1>
+        <button 
+          type="button" 
+          className="btn-unified btn-outline-secondary-unified"
+          onClick={onRaceCanceled}
+        >
+          <i className="fas fa-times"></i>
+          Annuler
+        </button>
+      </div>
+      
+      <div className="content-wrapper">
         <div className="card-body">
-          <form onSubmit={handleUpdate}>
-            <div className="row">
-              {/* Nom de la course */}
-              <div className="col-md-6 mb-3">
-                <label htmlFor="name" className="form-label required">
-                  Nom de la course
-                </label>
-                <input
-                  type="text"
-                  className={`form-control ${errors.name ? 'is-invalid' : ''}`}
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  placeholder="Ex: Marathon de Paris"
+        <form onSubmit={handleUpdate}>
+          <div className="row">
+            {/* Nom de la course */}
+            <div className="col-md-6 mb-3">
+              <label htmlFor="name" className="form-label required">
+                Nom de la course
+              </label>
+              <input
+                type="text"
+                className={`form-control ${errors.name ? 'is-invalid' : ''}`}
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                placeholder="Ex: Marathon de Paris"
                 />
                 {errors.name && <div className="invalid-feedback">{errors.name}</div>}
               </div>
