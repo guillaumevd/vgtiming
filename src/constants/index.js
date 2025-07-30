@@ -2,6 +2,9 @@
  * Application constants for VG-Timing
  */
 
+// Re-export race constants
+export * from './raceConstants';
+
 // Sort types
 export const SORT_TYPES = {
   TOTAL_LAPS: 'totalLaps',

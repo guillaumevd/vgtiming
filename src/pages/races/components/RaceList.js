@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './css/RaceList.css';
 
-const RaceList = ({ onSelectRace, onSetMode}) => {
+const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
   const [races, setRaces] = useState([]);
 
   useEffect(() => {
@@ -12,8 +12,14 @@ const RaceList = ({ onSelectRace, onSetMode}) => {
     fetchRaces();
   }, []);
 
-  const handleRaceClick = (race) => {
+  const handleRaceClick = (race, e) => {
+    e.stopPropagation();
     onSelectRace(race);
+  };
+
+  const handleParticipantsClick = (race, e) => {
+    e.stopPropagation();
+    onManageParticipants(race);
   };
 
   const handleAddClick = () => {
@@ -21,23 +27,80 @@ const RaceList = ({ onSelectRace, onSetMode}) => {
   };
 
   return (
-    <div>
-      <h1 className="my-3">Races</h1>
-      <div className="race-list row">
-        {races.map((race) => (
-          <div
-            key={race.id}
-            className="race-item"
-            onClick={() => handleRaceClick(race)}
-          >
-            <img src={race.cover} alt={race.name} className="race-cover" />
-            <h4>{race.name}</h4>
-          </div>
-        ))}
+    <div className="race-list-container">
+      <div className="race-list-header">
+        <h1>Gestion des Courses</h1>
+        <button className="btn btn-primary add-race-btn" onClick={handleAddClick}>
+          <i className="fas fa-plus me-2"></i>
+          Nouvelle Course
+        </button>
       </div>
-      <button className="add-race-button" onClick={() => handleAddClick()}>
-        Add Race
-      </button>
+      
+      {races.length === 0 ? (
+        <div className="empty-state">
+          <div className="empty-icon">
+            <i className="fas fa-flag-checkered"></i>
+          </div>
+          <h3>Aucune course trouvée</h3>
+          <p>Commencez par créer votre première course</p>
+          <button className="btn btn-primary" onClick={handleAddClick}>
+            Créer une course
+          </button>
+        </div>
+      ) : (
+        <div className="races-grid">
+          {races.map((race) => (
+            <div key={race.id} className="race-card">
+              <div className="race-card-header">
+                <h3 className="race-name">{race.name}</h3>
+                <span className={`race-status ${race.status ? race.status.toLowerCase() : 'draft'}`}>
+                  {race.status || 'Brouillon'}
+                </span>
+              </div>
+              
+              <div className="race-details">
+                <div className="race-info">
+                  <div className="info-item">
+                    <i className="fas fa-calendar-alt"></i>
+                    <span>{race.date ? new Date(race.date).toLocaleDateString('fr-FR') : 'Date non définie'}</span>
+                  </div>
+                  <div className="info-item">
+                    <i className="fas fa-clock"></i>
+                    <span>{race.startTime || 'Heure non définie'}</span>
+                  </div>
+                  <div className="info-item">
+                    <i className="fas fa-map-marker-alt"></i>
+                    <span>{race.location || 'Lieu non défini'}</span>
+                  </div>
+                  <div className="info-item">
+                    <i className="fas fa-users"></i>
+                    <span>{race.participants ? race.participants.length : 0} participants</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="race-actions">
+                <button 
+                  className="btn btn-outline-primary btn-sm"
+                  onClick={(e) => handleRaceClick(race, e)}
+                  title="Modifier la course"
+                >
+                  <i className="fas fa-edit"></i>
+                  Modifier
+                </button>
+                <button 
+                  className="btn btn-secondary btn-sm"
+                  onClick={(e) => handleParticipantsClick(race, e)}
+                  title="Gérer les participants"
+                >
+                  <i className="fas fa-users"></i>
+                  Participants
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
