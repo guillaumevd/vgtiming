@@ -18,10 +18,7 @@ export { default as RaceList } from '../pages/races/components/RaceList';
 export { default as AddRace } from '../pages/races/components/AddRace';
 export { default as RaceEdit } from '../pages/races/components/RaceEdit';
 
-// Timing components
-export { default as TimingComponent } from '../pages/timing/components/Timing';
-export { default as InfoBar } from '../pages/timing/components/InfoBar';
-export { default as TimingTitleBar } from '../pages/timing/components/TitleBar';
+// Timing components - Updated structure
 
 // Settings components
 export { default as SettingsContainer } from '../pages/settings/components/SettingsContainer';
