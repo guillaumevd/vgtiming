@@ -15,26 +15,89 @@ const LOG_LEVELS = {
 const SettingsContainer = () => {
   const [settings, setSettings] = useState({});
   const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [apiReady, setApiReady] = useState(false);
 
   useEffect(() => {
-    loadSettings();
+    // Vérifier si l'API est déjà prête
+    if (window.VGTiming && window.VGTiming.isReady) {
+      setApiReady(true);
+      loadSettings();
+    } else {
+      // Écouter l'événement de l'API prête
+      const handleAPIReady = async (event) => {
+        if (event.detail.ready) {
+          setApiReady(true);
+          window.removeEventListener('vgtiming-ready', handleAPIReady);
+          await loadSettings();
+        }
+      };
+      window.addEventListener('vgtiming-ready', handleAPIReady);
+
+      return () => {
+        window.removeEventListener('vgtiming-ready', handleAPIReady);
+      };
+    }
   }, []);
 
   const loadSettings = async () => {
     try {
-      const savedSettings = await window.Store.get() || {};
-      setSettings(savedSettings);
+      setLoading(true);
+      
+      if (!window.VGTiming || !window.VGTiming.isReady) {
+        addLog('Backend non disponible', LOG_LEVELS.ERROR);
+        return;
+      }
+
+      // Charger tous les paramètres depuis le backend
+      const result = await window.VGTiming.getAllSettings();
+      if (result.success) {
+        const settingsObj = {};
+        
+        // result.data est déjà un objet avec les clés comme paramètres
+        if (Array.isArray(result.data)) {
+          // Si c'est un tableau (pour compatibilité future)
+          result.data.forEach(setting => {
+            settingsObj[setting.key] = setting.value;
+          });
+        } else if (typeof result.data === 'object' && result.data !== null) {
+          // Si c'est un objet (format actuel)
+          Object.keys(result.data).forEach(key => {
+            settingsObj[key] = result.data[key].value;
+          });
+        }
+        
+        setSettings(settingsObj);
+        addLog('Paramètres chargés depuis la base de données', LOG_LEVELS.SUCCESS);
+      } else {
+        throw new Error(result.error || 'Erreur lors du chargement des paramètres');
+      }
     } catch (error) {
       console.error('Failed to load settings:', error);
+      addLog(`Erreur lors du chargement des paramètres: ${error.message}`, LOG_LEVELS.ERROR);
+    } finally {
+      setLoading(false);
     }
   };
 
   const updateSetting = async (key, value) => {
     try {
-      await window.Store.set(key, value);
-      setSettings(prev => ({ ...prev, [key]: value }));
+      if (!window.VGTiming || !window.VGTiming.isReady) {
+        addLog('Backend non disponible pour sauvegarder les paramètres', LOG_LEVELS.ERROR);
+        return;
+      }
+
+      // Sauvegarder dans le backend
+      const result = await window.VGTiming.setSetting(key, value);
+      if (result.success) {
+        setSettings(prev => ({ ...prev, [key]: value }));
+        addLog(`Paramètre "${key}" mis à jour`, LOG_LEVELS.SUCCESS);
+      } else {
+        throw new Error(result.error || 'Erreur lors de la sauvegarde du paramètre');
+      }
     } catch (error) {
       console.error('Failed to save setting:', error);
+      addLog(`Erreur lors de la sauvegarde du paramètre "${key}": ${error.message}`, LOG_LEVELS.ERROR);
     }
   };
 
@@ -57,30 +120,44 @@ const SettingsContainer = () => {
     <div className="settings-container">
       <div className="settings-header">
         <h1>Paramètres</h1>
+        {!apiReady && (
+          <div className="api-status warning">
+            ⚠️ Backend en cours de chargement...
+          </div>
+        )}
       </div>
       
-      <div className="settings-content">
-        <div className="settings-section">
-          <GeneralSettings 
-            settings={settings} 
-            onSettingChange={updateSetting}
-            onLog={addLog}
+      {loading ? (
+        <div className="settings-loading">
+          <div className="loading-spinner"></div>
+          <p>Chargement des paramètres...</p>
+        </div>
+      ) : (
+        <div className="settings-content">
+          <div className="settings-section">
+            <GeneralSettings 
+              settings={settings} 
+              onSettingChange={updateSetting}
+              onLog={addLog}
+              disabled={!apiReady}
+            />
+          </div>
+          
+          <div className="settings-section">
+            <CrossMgrConnection 
+              settings={settings} 
+              onSettingChange={updateSetting}
+              onLog={addLog}
+              disabled={!apiReady}
+            />
+          </div>
+          
+          <LogWindow 
+            logs={logs} 
+            onClearLogs={clearLogs}
           />
         </div>
-        
-        <div className="settings-section">
-          <CrossMgrConnection 
-            settings={settings} 
-            onSettingChange={updateSetting}
-            onLog={addLog}
-          />
-        </div>
-        
-        <LogWindow 
-          logs={logs} 
-          onClearLogs={clearLogs}
-        />
-      </div>
+      )}
     </div>
   );
 };

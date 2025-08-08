@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { RACE_TYPES, DURATION_TYPES } from '../../../constants/raceConstants';
 import { showToast } from '../../../utils/notifications';
 import './css/AddRace.css';
@@ -19,6 +19,26 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
 
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiReady, setApiReady] = useState(false);
+
+  useEffect(() => {
+    // Vérifier si l'API est déjà prête
+    if (window.VGTiming && window.VGTiming.isReady) {
+      setApiReady(true);
+    }
+
+    // Écouter l'événement de l'API prête
+    const handleAPIReady = (event) => {
+      setApiReady(event.detail.ready);
+      console.log('AddRace: API ready', event.detail);
+    };
+
+    window.addEventListener('vgtiming-ready', handleAPIReady);
+
+    return () => {
+      window.removeEventListener('vgtiming-ready', handleAPIReady);
+    };
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -73,21 +93,51 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
     setIsSubmitting(true);
 
     try {
+      // Vérifier que l'API est disponible
+      if (!window.VGTiming) {
+        throw new Error('API VG-Timing non disponible. Veuillez recharger la page.');
+      }
+
+      // Attendre que l'API soit prête si nécessaire
+      if (!window.VGTiming.isReady) {
+        let retries = 0;
+        const maxRetries = 10;
+        
+        while (!window.VGTiming.isReady && retries < maxRetries) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries++;
+        }
+        
+        if (!window.VGTiming.isReady) {
+          throw new Error('API VG-Timing non prête. Mode: ' + (window.VGTiming.isElectronContext ? 'Electron' : 'Web'));
+        }
+      }
+
       const raceData = {
-        ...formData,
-        id: Date.now(), // Simple ID generation
-        createdAt: new Date().toISOString(),
-        participants: []
+        name: formData.name.trim(),
+        date: formData.date,
+        time: formData.time, // ✅ time au lieu de startTime
+        location: formData.location?.trim() || null,
+        type: formData.type, // ✅ type au lieu de category
+        duration: formData.duration ? parseFloat(formData.duration) : null, // ✅ duration est OK
+        durationType: formData.durationType, // ✅ Ajouter durationType
+        maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : null,
+        description: formData.description?.trim() || null,
+        status: 'draft'
       };
 
-      // Save race using API
-      await window.raceAPI.add(raceData);
+      // Créer la course via le nouveau backend
+      const result = await window.VGTiming.createRace(raceData);
       
-      showToast('Course créée avec succès !', 'success');
-      onRaceAdded(raceData);
+      if (result.success) {
+        showToast('Course créée avec succès !', 'success');
+        onRaceAdded(result.data);
+      } else {
+        throw new Error(result.error || 'Erreur lors de la création de la course');
+      }
     } catch (error) {
       console.error('Error adding race:', error);
-      showToast('Erreur lors de la création de la course', 'error');
+      showToast(error.message || 'Erreur lors de la création de la course', 'error');
     } finally {
       setIsSubmitting(false);
     }

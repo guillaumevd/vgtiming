@@ -1,13 +1,53 @@
 import React, { useState, useEffect } from 'react';
 import { DEFAULT_PARTICIPANT } from '../../../constants/raceConstants';
+import { showToast } from '../../../utils/notifications';
 import './css/Participants.css';
 
 const Participants = ({ race, onBack, onSave }) => {
-  const [participants, setParticipants] = useState(race.participants || []);
+  const [participants, setParticipants] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingParticipant, setEditingParticipant] = useState(null);
   const [newParticipant, setNewParticipant] = useState({ ...DEFAULT_PARTICIPANT });
   const [errors, setErrors] = useState({});
+
+  // Charger les participants de la course
+  useEffect(() => {
+    const loadParticipants = async () => {
+      try {
+        setLoading(true);
+        
+        if (!window.VGTiming || !window.VGTiming.isReady) {
+          const handleAPIReady = async (event) => {
+            if (event.detail.ready) {
+              window.removeEventListener('vgtiming-ready', handleAPIReady);
+              await fetchParticipants();
+            }
+          };
+          window.addEventListener('vgtiming-ready', handleAPIReady);
+          return;
+        }
+        
+        await fetchParticipants();
+      } catch (error) {
+        console.error('Erreur lors du chargement des participants:', error);
+        showToast('Erreur lors du chargement des participants', 'error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchParticipants = async () => {
+      const result = await window.VGTiming.getParticipantsByRace(race.id);
+      if (result.success) {
+        setParticipants(result.data || []);
+      } else {
+        throw new Error(result.error || 'Erreur lors du chargement des participants');
+      }
+    };
+
+    loadParticipants();
+  }, [race.id]);
 
   const validateParticipant = (participant) => {
     const newErrors = {};
@@ -47,68 +87,133 @@ const Participants = ({ race, onBack, onSave }) => {
     return newErrors;
   };
 
-  const handleAddParticipant = () => {
+  const handleAddParticipant = async () => {
     const validationErrors = validateParticipant(newParticipant);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
     
-    const participant = {
-      ...newParticipant,
-      id: Date.now().toString()
-    };
-    
-    setParticipants(prev => [...prev, participant]);
-    setNewParticipant({ ...DEFAULT_PARTICIPANT });
-    setShowAddForm(false);
-    setErrors({});
+    try {
+      const participantData = {
+        raceId: race.id,
+        name: newParticipant.name.trim(),
+        number: String(newParticipant.number), // S'assurer que c'est une string
+        epcTag: newParticipant.epcTag?.trim() || '',
+        team: newParticipant.team?.trim() || '',
+        category: newParticipant.category || 'Général',
+        isActive: Boolean(newParticipant.isActive !== undefined ? newParticipant.isActive : true)
+      };
+
+      const result = await window.VGTiming.createParticipant(participantData);
+      
+      if (result.success) {
+        setParticipants(prev => [...prev, result.data]);
+        setNewParticipant({ ...DEFAULT_PARTICIPANT });
+        setShowAddForm(false);
+        setErrors({});
+        showToast('Participant ajouté avec succès !', 'success');
+      } else {
+        throw new Error(result.error || 'Erreur lors de l\'ajout du participant');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout du participant:', error);
+      showToast(error.message || 'Erreur lors de l\'ajout du participant', 'error');
+    }
   };
 
   const handleEditParticipant = (participant) => {
-    setEditingParticipant({ ...participant });
+    setEditingParticipant({ 
+      ...participant,
+      epcTag: participant.epcTag || '', // Convertir null en string vide
+      team: participant.team || '',     // Convertir null en string vide
+      category: participant.category || 'Général'
+    });
   };
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => {
     const validationErrors = validateParticipant(editingParticipant);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       return;
     }
     
-    setParticipants(prev => 
-      prev.map(p => p.id === editingParticipant.id ? editingParticipant : p)
-    );
-    setEditingParticipant(null);
-    setErrors({});
-  };
-
-  const handleDeleteParticipant = (participantId) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce participant ?')) {
-      setParticipants(prev => prev.filter(p => p.id !== participantId));
-    }
-  };
-
-  const handleToggleActive = (participantId) => {
-    setParticipants(prev => 
-      prev.map(p => 
-        p.id === participantId ? { ...p, isActive: !p.isActive } : p
-      )
-    );
-  };
-
-  const handleSaveRace = async () => {
     try {
-      const updatedRace = {
-        ...race,
-        participants: participants
+      const updateData = {
+        name: editingParticipant.name.trim(),
+        number: String(editingParticipant.number), // S'assurer que c'est une string
+        epcTag: editingParticipant.epcTag?.trim() || '',
+        team: editingParticipant.team?.trim() || '',
+        category: editingParticipant.category || 'Général',
+        isActive: Boolean(editingParticipant.isActive !== undefined ? editingParticipant.isActive : true)
       };
+
+      const result = await window.VGTiming.updateParticipant(editingParticipant.id, updateData);
       
-      await window.raceAPI.update(updatedRace);
-      onSave(updatedRace);
+      if (result.success) {
+        setParticipants(prev => 
+          prev.map(p => p.id === editingParticipant.id ? result.data : p)
+        );
+        setEditingParticipant(null);
+        setErrors({});
+        showToast('Participant mis à jour avec succès !', 'success');
+      } else {
+        throw new Error(result.error || 'Erreur lors de la mise à jour du participant');
+      }
     } catch (error) {
-      console.error('Erreur lors de la sauvegarde:', error);
+      console.error('Erreur lors de la mise à jour du participant:', error);
+      showToast(error.message || 'Erreur lors de la mise à jour du participant', 'error');
     }
+  };
+
+  const handleDeleteParticipant = async (participantId) => {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce participant ?')) {
+      return;
+    }
+
+    try {
+      const result = await window.VGTiming.deleteParticipant(participantId);
+      
+      if (result.success) {
+        setParticipants(prev => prev.filter(p => p.id !== participantId));
+        showToast('Participant supprimé avec succès !', 'success');
+      } else {
+        throw new Error(result.error || 'Erreur lors de la suppression du participant');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la suppression du participant:', error);
+      showToast(error.message || 'Erreur lors de la suppression du participant', 'error');
+    }
+  };
+
+  const handleToggleActive = async (participantId) => {
+    const participant = participants.find(p => p.id === participantId);
+    if (!participant) return;
+
+    try {
+      const updateData = {
+        isActive: Boolean(!participant.isActive)
+      };
+
+      const result = await window.VGTiming.updateParticipant(participantId, updateData);
+      
+      if (result.success) {
+        setParticipants(prev => 
+          prev.map(p => p.id === participantId ? result.data : p)
+        );
+      } else {
+        throw new Error(result.error || 'Erreur lors de la mise à jour du statut');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour du statut:', error);
+      showToast(error.message || 'Erreur lors de la mise à jour du statut', 'error');
+    }
+  };
+
+  const handleSaveAndBack = () => {
+    // Les participants sont maintenant sauvegardés individuellement
+    // Nous renvoyons simplement à la liste des courses
+    onSave(race);
   };
 
   const ParticipantForm = ({ participant, onChange, isEditing = false }) => (
@@ -120,7 +225,7 @@ const Participants = ({ race, onBack, onSave }) => {
             <input
               type="text"
               className={`form-control ${errors.name ? 'is-invalid' : ''}`}
-              value={participant.name}
+              value={participant.name || ''}
               onChange={(e) => onChange({ ...participant, name: e.target.value })}
               placeholder="Nom du participant"
             />
@@ -134,7 +239,7 @@ const Participants = ({ race, onBack, onSave }) => {
             <input
               type="text"
               className={`form-control ${errors.number ? 'is-invalid' : ''}`}
-              value={participant.number}
+              value={participant.number || ''}
               onChange={(e) => onChange({ ...participant, number: e.target.value })}
               placeholder="N°"
             />
@@ -148,7 +253,7 @@ const Participants = ({ race, onBack, onSave }) => {
             <input
               type="text"
               className="form-control"
-              value={participant.category}
+              value={participant.category || ''}
               onChange={(e) => onChange({ ...participant, category: e.target.value })}
               placeholder="Ex: Senior"
             />
@@ -163,7 +268,7 @@ const Participants = ({ race, onBack, onSave }) => {
             <input
               type="text"
               className={`form-control ${errors.epcTag ? 'is-invalid' : ''}`}
-              value={participant.epcTag}
+              value={participant.epcTag || ''}
               onChange={(e) => onChange({ ...participant, epcTag: e.target.value.toUpperCase() })}
               placeholder="Ex: E200001234567890"
               style={{ fontFamily: 'monospace' }}
@@ -179,7 +284,7 @@ const Participants = ({ race, onBack, onSave }) => {
             <input
               type="text"
               className="form-control"
-              value={participant.team}
+              value={participant.team || ''}
               onChange={(e) => onChange({ ...participant, team: e.target.value })}
               placeholder="Nom de l'équipe"
             />
@@ -216,13 +321,21 @@ const Participants = ({ race, onBack, onSave }) => {
       <div className="race-list-header">
         <h1>Participants - {race.name}</h1>
         <div className="race-info">
-          <span className="badge badge-primary">{race.type}</span>
+          <span className="badge badge-primary">{race.category || race.type}</span>
           <span className="participant-count">{participants.length} participant(s)</span>
         </div>
       </div>
       
-      <div className="content-wrapper">
-        <div className="card-body">
+      {loading ? (
+        <div className="empty-state">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Chargement...</span>
+          </div>
+          <h3>Chargement des participants...</h3>
+        </div>
+      ) : (
+        <div className="content-wrapper">
+          <div className="card-body">
         {/* Add participant form */}
         {showAddForm && (
           <div className="add-participant-section">
@@ -338,14 +451,15 @@ const Participants = ({ race, onBack, onSave }) => {
             </button>
             <button 
               className="btn-unified btn-success-unified"
-              onClick={handleSaveRace}
+              onClick={handleSaveAndBack}
               disabled={showAddForm || editingParticipant}
             >
-              Sauvegarder les participants
+              ✓ Terminé
             </button>
           </div>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   );
 };

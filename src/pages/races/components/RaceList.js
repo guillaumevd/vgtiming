@@ -3,12 +3,46 @@ import './css/RaceList.css';
 
 const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
   const [races, setRaces] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchRaces = async () => {
-      const fetchedRaces = await window.raceAPI.get();
-      setRaces(fetchedRaces);
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Attendre que l'API soit prête
+        if (!window.VGTiming || !window.VGTiming.isReady) {
+          // Écouter l'événement de l'API prête
+          const handleAPIReady = async (event) => {
+            if (event.detail.ready) {
+              window.removeEventListener('vgtiming-ready', handleAPIReady);
+              await loadRaces();
+            }
+          };
+          window.addEventListener('vgtiming-ready', handleAPIReady);
+          return;
+        }
+        
+        await loadRaces();
+      } catch (err) {
+        console.error('Erreur lors du chargement des courses:', err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    const loadRaces = async () => {
+      const result = await window.VGTiming.getAllRaces();
+      if (result.success) {
+        setRaces(result.data || []);
+      } else {
+        throw new Error(result.error || 'Erreur lors du chargement des courses');
+      }
+    };
+
     fetchRaces();
   }, []);
 
@@ -36,7 +70,26 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
         </button>
       </div>
       
-      {races.length === 0 ? (
+      {loading ? (
+        <div className="empty-state">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Chargement...</span>
+          </div>
+          <h3>Chargement des courses...</h3>
+        </div>
+      ) : error ? (
+        <div className="empty-state">
+          <div className="empty-icon text-danger">
+            <i className="fas fa-exclamation-triangle"></i>
+          </div>
+          <h3>Erreur de chargement</h3>
+          <p>{error}</p>
+          <button className="btn-unified btn-secondary-unified" onClick={() => window.location.reload()}>
+            <i className="fas fa-sync-alt"></i>
+            Réessayer
+          </button>
+        </div>
+      ) : races.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon">
             <i className="fas fa-flag-checkered"></i>
@@ -75,7 +128,7 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
                   </div>
                   <div className="info-item">
                     <i className="fas fa-users"></i>
-                    <span>{race.participants ? race.participants.length : 0} participants</span>
+                    <span>{race.participantCount || 0} participants</span>
                   </div>
                 </div>
               </div>

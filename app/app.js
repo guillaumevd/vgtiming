@@ -1,7 +1,8 @@
 const { app, ipcMain, BrowserWindow } = require('electron');
 const { autoUpdater } = require('electron-updater')
-const ElectronStore = require('electron-store');
-require('./raceApi.js');
+
+// Backend Integration
+const { initializeBackend, cleanupBackend } = require('./backend');
 
 //DISABLE UPDATER AUTO DOWNLOAD
 autoUpdater.autoDownload = false;
@@ -18,8 +19,20 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     app.quit();
 } else {
-    app.whenReady().then(() => {
-        UpdateWindow.createWindow();
+    app.whenReady().then(async () => {
+        try {
+            // Initialize backend first
+            console.log('Initializing VG-Timing backend...');
+            await initializeBackend();
+            console.log('Backend initialized successfully!');
+            
+            // Then create the window
+            UpdateWindow.createWindow();
+        } catch (error) {
+            console.error('Failed to initialize backend:', error);
+            // Still create window but with error state
+            UpdateWindow.createWindow();
+        }
     });
 }
 //-------------------------------------------------
@@ -37,7 +50,26 @@ ipcMain.on('main-window-close', () => MainWindow.destroyWindow())
 ipcMain.on('main-window-dev-tools', () => MainWindow.getWindow().webContents.openDevTools())
 ipcMain.on('main-window-minimize', () => MainWindow.getWindow().minimize())
 ipcMain.on('main-window-maximize', () => { if (MainWindow.getWindow().isMaximized()) { MainWindow.getWindow().unmaximize(); } else { MainWindow.getWindow().maximize(); } })
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+
+// App lifecycle management
+app.on('window-all-closed', () => { 
+    if (process.platform !== 'darwin') {
+        cleanupBackend().then(() => {
+            app.quit();
+        });
+    }
+});
+
+app.on('before-quit', async (event) => {
+    event.preventDefault();
+    try {
+        await cleanupBackend();
+        app.exit(0);
+    } catch (error) {
+        console.error('Error during cleanup:', error);
+        app.exit(1);
+    }
+});
 //------------------------------------
 
 
@@ -92,25 +124,4 @@ ipcMain.handle("fetch", async (event, url) => {
   }
 });
 
-// Store handlers
-const { store } = require('./store.js');
-
-ipcMain.handle("store-get", (event, key) => {
-  return store.get(key);
-});
-
-ipcMain.handle("store-set", (event, key, value) => {
-  return store.set(key, value);
-});
-
-ipcMain.handle("store-has", (event, key) => {
-  return store.has(key);
-});
-
-ipcMain.handle("store-delete", (event, key) => {
-  return store.delete(key);
-});
-
-ipcMain.handle("store-clear", (event) => {
-  return store.clear();
-});
+//------------------------------------

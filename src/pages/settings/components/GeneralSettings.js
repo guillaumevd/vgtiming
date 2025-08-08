@@ -49,9 +49,25 @@ const GeneralSettings = ({ settings, onSettingChange, onLog }) => {
     handleChange('refreshRate', rate);
   };
 
-  const handleBrowse = () => {
-    // Simuler la sélection de dossier (à implémenter plus tard)
-    onLog('Sélection de dossier - À implémenter', 'warning');
+  const handleBrowse = async () => {
+    try {
+      if (!window.systemAPI || !window.systemAPI.selectFolder) {
+        onLog('API de sélection de dossier non disponible', 'error');
+        return;
+      }
+
+      const result = await window.systemAPI.selectFolder();
+      
+      if (result.success && !result.canceled) {
+        handleChange('outputDir', result.data.path);
+        onLog(`Dossier sélectionné: ${result.data.path}`, 'success');
+      } else if (!result.canceled) {
+        onLog(`Erreur lors de la sélection: ${result.error}`, 'error');
+      }
+    } catch (error) {
+      console.error('Error selecting folder:', error);
+      onLog(`Erreur: ${error.message}`, 'error');
+    }
   };
 
   return (

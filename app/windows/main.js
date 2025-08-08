@@ -1,6 +1,7 @@
 const electron = require("electron");
 const path = require("path");
 const os = require("os");
+const { setMainWindow } = require("../backend");
 
 let mainWindow = undefined;
 
@@ -75,6 +76,8 @@ function createWindow() {
     mainWindow.once('ready-to-show', () => {
         if (mainWindow) {
             mainWindow.show();
+            // Définir la fenêtre principale dans le backend pour les dialogues
+            setMainWindow(mainWindow);
         }
     });
 

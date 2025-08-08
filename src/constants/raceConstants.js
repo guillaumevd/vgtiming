@@ -4,10 +4,19 @@
 
 // Race types
 export const RACE_TYPES = {
-  TIME_TRIAL: 'time_trial',
-  ENDURANCE: 'endurance',
-  LAPS: 'laps',
-  SPRINT: 'sprint'
+  ROAD_RACE: 'Route',
+  TRACK: 'Piste',
+  CYCLO_CROSS: 'Cyclo-cross',
+  VTT_CROSS_COUNTRY: 'VTT Cross-country',
+  VTT_ENDURO: 'VTT Enduro',
+  VTT_DESCENT: 'VTT Descente',
+  BMX_RACE: 'BMX Race',
+  BMX_FREESTYLE: 'BMX Freestyle',
+  RUNNING: 'Course à pied',
+  TRAIL: 'Trail',
+  MARATHON: 'Marathon',
+  TRIATHLON: 'Triathlon',
+  OTHER: 'Autre'
 };
 
 // Race status

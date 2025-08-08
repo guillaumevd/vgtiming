@@ -5,9 +5,11 @@ const TimingDisplay = ({
   displayMode, 
   setDisplayMode, 
   timingData, 
-  raceStatus 
+  raceStatus,
+  settings = {}
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortType, setSortType] = useState(settings.sortType || 'bestLap');
   
   // Demo data for development
   const demoData = [
@@ -48,44 +50,94 @@ const TimingDisplay = ({
 
   const displayData = timingData.length > 0 ? timingData : demoData;
   
-  const filteredData = displayData.filter(participant =>
-    participant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    participant.number.includes(searchQuery)
-  );
+  const filteredData = displayData.filter(participant => {
+    const name = participant.name || participant.participantName || '';
+    const number = participant.number || participant.bibNumber || '';
+    
+    return name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+           number.toString().includes(searchQuery);
+  });
+
+  // Fonction de tri
+  const sortedData = [...filteredData].sort((a, b) => {
+    switch (sortType) {
+      case 'bestLap':
+        const aTime = a.bestLapTime || '99:99.999';
+        const bTime = b.bestLapTime || '99:99.999';
+        return aTime.localeCompare(bTime);
+      case 'lastLap':
+        const aLastTime = a.lastLapTime || '99:99.999';
+        const bLastTime = b.lastLapTime || '99:99.999';
+        return aLastTime.localeCompare(bLastTime);
+      case 'totalLaps':
+        const aLaps = a.laps || 0;
+        const bLaps = b.laps || 0;
+        return bLaps - aLaps; // Ordre décroissant pour les tours
+      case 'position':
+      default:
+        const aPos = a.position || 999;
+        const bPos = b.position || 999;
+        return aPos - bPos;
+    }
+  });
+
+  const handleSortChange = async (newSortType) => {
+    setSortType(newSortType);
+    
+    // Sauvegarder la préférence dans la base de données
+    try {
+      if (window.VGTiming && window.VGTiming.isReady) {
+        await window.VGTiming.setSetting('sortType', newSortType);
+        console.log('Préférence de tri sauvegardée:', newSortType);
+      }
+    } catch (error) {
+      console.error('Erreur lors de la sauvegarde du tri:', error);
+    }
+  };
 
   const renderListView = () => (
     <div className="timing-list-container">
       <div className="timing-list">
-        {filteredData.map((participant) => (
-          <div key={participant.id} className={`timing-list-item rank-${participant.position <= 3 ? participant.position : ''}`}>
-            <div className="list-item-header">
-              <div className="position-badge">{participant.position}</div>
-              <div className="driver-info">
-                <div className="driver-name">{participant.name}</div>
-                <div className="driver-number">#{participant.number}</div>
+        {sortedData.map((participant) => {
+          const name = participant.name || participant.participantName || 'Participant inconnu';
+          const number = participant.number || participant.bibNumber || 'N/A';
+          const position = participant.position || participant.rank || 'N/A';
+          const laps = participant.laps || participant.lapCount || 0;
+          const bestLapTime = participant.bestLapTime || participant.bestTime || 'N/A';
+          const totalTime = participant.totalTime || 'N/A';
+          const gap = participant.gap || 'N/A';
+          
+          return (
+            <div key={participant.id || participant.participantId || Math.random()} className={`timing-list-item rank-${position <= 3 ? position : ''}`}>
+              <div className="list-item-header">
+                <div className="position-badge">{position}</div>
+                <div className="driver-info">
+                  <div className="driver-name">{name}</div>
+                  <div className="driver-number">#{number}</div>
+                </div>
+              </div>
+              
+              <div className="list-item-content">
+                <div className="stat-group">
+                  <div className="stat-label">Tours</div>
+                  <div className="stat-value">{laps}</div>
+                </div>
+                <div className="stat-group">
+                  <div className="stat-label">Meilleur Tour</div>
+                  <div className="stat-value best-time">{bestLapTime}</div>
+                </div>
+                <div className="stat-group">
+                  <div className="stat-label">Temps Total</div>
+                  <div className="stat-value">{totalTime}</div>
+                </div>
+                <div className="stat-group">
+                  <div className="stat-label">Écart</div>
+                  <div className="stat-value">{gap}</div>
+                </div>
               </div>
             </div>
-            
-            <div className="list-item-content">
-              <div className="stat-group">
-                <div className="stat-label">Tours</div>
-                <div className="stat-value">{participant.laps}</div>
-              </div>
-              <div className="stat-group">
-                <div className="stat-label">Meilleur Tour</div>
-                <div className="stat-value best-time">{participant.bestLapTime}</div>
-              </div>
-              <div className="stat-group">
-                <div className="stat-label">Temps Total</div>
-                <div className="stat-value">{participant.totalTime}</div>
-              </div>
-              <div className="stat-group">
-                <div className="stat-label">Écart</div>
-                <div className="stat-value">{participant.gap}</div>
-              </div>
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -105,12 +157,12 @@ const TimingDisplay = ({
           </tr>
         </thead>
         <tbody>
-          {filteredData.map((participant) => (
-            <tr key={participant.id} className={`timing-row position-${participant.position}`}>
+          {sortedData.map((participant) => (
+            <tr key={participant.id} className={`timing-row position-${participant.position || 'unknown'}`}>
               <td className="position-cell">
                 <div className="position-wrapper">
-                  <span className="position-number">{participant.position}</span>
-                  {participant.position <= 3 && (
+                  <span className="position-number">{participant.position || '-'}</span>
+                  {participant.position && participant.position <= 3 && (
                     <span className="podium-indicator">
                       {participant.position === 1 && '🥇'}
                       {participant.position === 2 && '🥈'}
@@ -121,17 +173,17 @@ const TimingDisplay = ({
               </td>
               <td className="driver-cell">
                 <div className="driver-info">
-                  <div className="driver-name">{participant.name}</div>
-                  <div className="driver-number">#{participant.number}</div>
+                  <div className="driver-name">{participant.name || 'Pilote inconnu'}</div>
+                  <div className="driver-number">#{participant.number || '?'}</div>
                 </div>
               </td>
               <td className="laps-cell">
-                <span className="laps-count">{participant.laps}</span>
+                <span className="laps-count">{participant.laps || 0}</span>
               </td>
-              <td className="time-cell best-lap">{participant.bestLapTime}</td>
-              <td className="time-cell">{participant.lastLapTime}</td>
-              <td className="time-cell">{participant.totalTime}</td>
-              <td className="gap-cell">{participant.gap}</td>
+              <td className="time-cell best-lap">{participant.bestLapTime || '-'}</td>
+              <td className="time-cell">{participant.lastLapTime || '-'}</td>
+              <td className="time-cell">{participant.totalTime || '-'}</td>
+              <td className="gap-cell">{participant.gap || '-'}</td>
             </tr>
           ))}
         </tbody>
@@ -163,7 +215,7 @@ const TimingDisplay = ({
           </h2>
           {selectedRace && (
             <div className="participants-count">
-              {filteredData.length} participant(s) en course
+              {sortedData.length} participant(s) en course
             </div>
           )}
         </div>
@@ -177,6 +229,20 @@ const TimingDisplay = ({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+          </div>
+          
+          <div className="sort-controls">
+            <label className="sort-label">Trier par:</label>
+            <select 
+              className="sort-select"
+              value={sortType}
+              onChange={(e) => handleSortChange(e.target.value)}
+            >
+              <option value="position">Position</option>
+              <option value="bestLap">Meilleur tour</option>
+              <option value="lastLap">Dernier tour</option>
+              <option value="totalLaps">Nombre de tours</option>
+            </select>
           </div>
           
           <div className="display-controls">
@@ -201,7 +267,7 @@ const TimingDisplay = ({
       <div className="timing-display-content">
         {!selectedRace || (timingData.length === 0 && raceStatus === 'ready') ? (
           renderNoData()
-        ) : filteredData.length === 0 ? (
+        ) : sortedData.length === 0 ? (
           <div className="no-results-message">
             <p>Aucun résultat trouvé pour "{searchQuery}"</p>
             <button 

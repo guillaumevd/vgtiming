@@ -7,48 +7,164 @@ const Home = () => {
     totalRaces: 0,
     activeRaces: 0,
     totalParticipants: 0,
+    totalTimingData: 0,
     lastActivity: null
   });
 
   const [systemStatus, setSystemStatus] = useState({
     crossmgr: 'disconnected',
     database: 'connected',
-    timing: 'ready'
+    timing: 'ready',
+    api: 'connecting'
   });
 
   const [recentActivities, setRecentActivities] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadDashboardData();
     loadRecentActivities();
+    
+    // Actualiser les données toutes les 30 secondes
+    const interval = setInterval(() => {
+      loadDashboardData();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const loadDashboardData = async () => {
     try {
-      // Charger les statistiques des courses
-      const races = await window.raceAPI.get() || [];
-      const activeRaces = races.filter(race => race.status === 'active' || race.status === 'en cours');
-      const totalParticipants = races.reduce((sum, race) => sum + (race.participants?.length || 0), 0);
+      setLoading(true);
+      
+      if (!window.VGTiming || !window.VGTiming.isReady) {
+        const handleAPIReady = async (event) => {
+          if (event.detail.ready) {
+            window.removeEventListener('vgtiming-ready', handleAPIReady);
+            await loadDashboardData();
+          }
+        };
+        window.addEventListener('vgtiming-ready', handleAPIReady);
+        setSystemStatus(prev => ({ ...prev, api: 'waiting' }));
+        return;
+      }
+
+      setSystemStatus(prev => ({ ...prev, api: 'connected' }));
+      
+      // Charger toutes les courses
+      const racesResult = await window.VGTiming.getAllRaces();
+      const races = racesResult.success ? racesResult.data : [];
+      
+      // Calculer les statistiques des courses
+      const activeRaces = races.filter(race => 
+        race.status === 'active' || race.status === 'ready' || race.status === 'paused'
+      );
+      
+      // Charger tous les participants
+      let totalParticipants = 0;
+      let totalTimingData = 0;
+      
+      for (const race of races) {
+        try {
+          const participantsResult = await window.VGTiming.getParticipantsByRace(race.id);
+          if (participantsResult.success) {
+            totalParticipants += participantsResult.data.length;
+          }
+          
+          // Essayer de charger les données de chronométrage (si disponible)
+          try {
+            const timingResult = await window.VGTiming.getTimingByRace?.(race.id);
+            if (timingResult && timingResult.success) {
+              totalTimingData += timingResult.data.length;
+            }
+          } catch (e) {
+            // Ignorer si la méthode n'existe pas encore
+          }
+        } catch (error) {
+          console.warn('Erreur lors du chargement des participants pour la course:', race.id);
+        }
+      }
+
+      // Trouver la dernière activité
+      let lastActivity = null;
+      if (races.length > 0) {
+        const sortedRaces = races.sort((a, b) => 
+          new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt)
+        );
+        lastActivity = new Date(sortedRaces[0].updatedAt || sortedRaces[0].createdAt);
+      }
 
       setStats({
         totalRaces: races.length,
         activeRaces: activeRaces.length,
         totalParticipants,
-        lastActivity: races.length > 0 ? new Date(races[0].createdAt || Date.now()) : null
+        totalTimingData,
+        lastActivity
       });
+
+      setSystemStatus(prev => ({ 
+        ...prev, 
+        database: 'connected',
+        timing: totalTimingData > 0 ? 'active' : 'ready'
+      }));
+      
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
+      setSystemStatus(prev => ({ ...prev, api: 'error', database: 'error' }));
+    } finally {
+      setLoading(false);
     }
   };
 
-  const loadRecentActivities = () => {
-    // Simuler des activités récentes (à remplacer par de vraies données)
-    setRecentActivities([
-      { time: '14:30', message: 'Application démarrée', type: 'info' },
-      { time: '14:25', message: 'Paramètres de configuration mis à jour', type: 'success' },
-      { time: '14:20', message: 'Nouvelle course créée', type: 'info' },
-      { time: '14:15', message: 'Connexion CrossMgr testée', type: 'warning' }
-    ]);
+  const loadRecentActivities = async () => {
+    try {
+      const activities = [];
+      const now = new Date();
+      
+      // Ajouter l'activité de démarrage de l'application
+      activities.push({
+        time: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        message: 'Application VG-Timing démarrée',
+        type: 'info'
+      });
+      
+      // Charger les activités récentes depuis la base de données
+      if (window.VGTiming && window.VGTiming.isReady) {
+        const racesResult = await window.VGTiming.getAllRaces();
+        if (racesResult.success) {
+          const recentRaces = racesResult.data
+            .sort((a, b) => new Date(b.updatedAt || b.createdAt) - new Date(a.updatedAt || a.createdAt))
+            .slice(0, 3);
+            
+          recentRaces.forEach(race => {
+            const raceTime = new Date(race.updatedAt || race.createdAt);
+            activities.push({
+              time: raceTime.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+              message: `Course "${race.name}" ${race.updatedAt ? 'mise à jour' : 'créée'}`,
+              type: race.status === 'active' ? 'success' : 'info'
+            });
+          });
+        }
+      }
+      
+      // Ajouter le statut de la base de données
+      activities.push({
+        time: new Date(now.getTime() - 1000).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        message: 'Base de données connectée',
+        type: 'success'
+      });
+
+      setRecentActivities(activities.slice(0, 4));
+    } catch (error) {
+      console.error('Erreur lors du chargement des activités:', error);
+      setRecentActivities([
+        {
+          time: new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+          message: 'Erreur de connexion aux données',
+          type: 'error'
+        }
+      ]);
+    }
   };
 
   const getStatusText = (status) => {
@@ -89,7 +205,17 @@ const Home = () => {
         <div className="version-info">
           <span>📦</span>
           Version 0.0.4 - Prêt pour le chronométrage
+          {stats.lastActivity && (
+            <span style={{ marginLeft: '2rem', opacity: 0.8 }}>
+              Dernière activité: {stats.lastActivity.toLocaleDateString('fr-FR')} à {stats.lastActivity.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
         </div>
+        {loading && (
+          <div style={{ color: '#63b3ed', marginTop: '1rem', fontSize: '0.9rem' }}>
+            <span>🔄</span> Chargement des données...
+          </div>
+        )}
       </div>
 
       {/* Grille des cartes principales */}
@@ -130,16 +256,16 @@ const Home = () => {
           </p>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">0</span>
+              <span className="stat-value">{stats.activeRaces}</span>
               <span className="stat-label">En cours</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">Ready</span>
+              <span className="stat-value">{systemStatus.timing === 'active' ? 'Active' : 'Ready'}</span>
               <span className="stat-label">Status</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">1000ms</span>
-              <span className="stat-label">Refresh</span>
+              <span className="stat-value">{stats.totalTimingData}</span>
+              <span className="stat-label">Données</span>
             </div>
           </div>
         </div>
@@ -148,18 +274,18 @@ const Home = () => {
         <div className="dashboard-card">
           <div className="card-header">
             <div className="card-icon">📰</div>
-            <h3 className="card-title">Actualités</h3>
+            <h3 className="card-title">Activité</h3>
           </div>
           <p className="card-description">
-            Dernières informations et mises à jour
+            Dernières activités et événements du système
           </p>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">0</span>
-              <span className="stat-label">Nouvelles</span>
+              <span className="stat-value">{recentActivities.length}</span>
+              <span className="stat-label">Événements</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">Sync</span>
+              <span className="stat-value">{systemStatus.api === 'connected' ? 'Sync' : 'Offline'}</span>
               <span className="stat-label">Status</span>
             </div>
             <div className="stat-item">
@@ -173,23 +299,23 @@ const Home = () => {
         <div className="dashboard-card">
           <div className="card-header">
             <div className="card-icon">⚙️</div>
-            <h3 className="card-title">Configuration</h3>
+            <h3 className="card-title">Système</h3>
           </div>
           <p className="card-description">
-            Paramètres système et préférences utilisateur
+            État des connexions et configuration système
           </p>
           <div className="card-stats">
             <div className="stat-item">
-              <span className="stat-value">Dark</span>
-              <span className="stat-label">Thème</span>
+              <span className="stat-value">{systemStatus.database === 'connected' ? '✓' : '✗'}</span>
+              <span className="stat-label">Base</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">FR</span>
-              <span className="stat-label">Langue</span>
+              <span className="stat-value">{systemStatus.crossmgr === 'connected' ? '✓' : '✗'}</span>
+              <span className="stat-label">CrossMgr</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">✓</span>
-              <span className="stat-label">Sync</span>
+              <span className="stat-value">{systemStatus.api === 'connected' ? '✓' : '✗'}</span>
+              <span className="stat-label">API</span>
             </div>
           </div>
         </div>

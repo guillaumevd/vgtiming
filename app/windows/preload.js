@@ -35,6 +35,7 @@ contextBridge.exposeInMainWorld('raceAPI', {
 
 contextBridge.exposeInMainWorld('electronAPI', {
   fetch: async (url) => await ipcRenderer.invoke('fetch', url),
+  invoke: async (channel, ...args) => await ipcRenderer.invoke(channel, ...args),
 });
 
 contextBridge.exposeInMainWorld('windowControls', {
@@ -42,4 +43,10 @@ contextBridge.exposeInMainWorld('windowControls', {
   maximize: () => ipcRenderer.send('window-maximize'),
   close: () => ipcRenderer.send('window-close'),
   isMaximized: () => ipcRenderer.invoke('window-is-maximized'),
+});
+
+contextBridge.exposeInMainWorld('systemAPI', {
+  selectFolder: () => ipcRenderer.invoke('system:select-folder'),
+  selectFile: (filters) => ipcRenderer.invoke('system:select-file', filters),
+  openFolder: (path) => ipcRenderer.invoke('system:open-folder', path),
 });

@@ -74,20 +74,30 @@ const EditRace = ({ race, onRaceUpdated, onRaceDeleted, onRaceCanceled }) => {
     setIsSubmitting(true);
 
     try {
-      const updatedRace = {
-        ...race,
-        ...formData,
-        updatedAt: new Date().toISOString()
+      const updateData = {
+        name: formData.name.trim(),
+        date: formData.date,
+        time: formData.time, // ✅ time au lieu de startTime
+        location: formData.location?.trim() || null,
+        type: formData.type, // ✅ type au lieu de category
+        duration: formData.duration ? parseFloat(formData.duration) : null, // ✅ duration au lieu de distance
+        durationType: formData.durationType, // ✅ Ajouter durationType
+        maxParticipants: formData.maxParticipants ? parseInt(formData.maxParticipants) : null,
+        description: formData.description?.trim() || null
       };
 
-      // Update race using API
-      await window.raceAPI.update(updatedRace);
+      // Mettre à jour la course via le nouveau backend
+      const result = await window.VGTiming.updateRace(race.id, updateData);
       
-      showToast('Course mise à jour avec succès !', 'success');
-      onRaceUpdated(updatedRace);
+      if (result.success) {
+        showToast('Course mise à jour avec succès !', 'success');
+        onRaceUpdated(result.data);
+      } else {
+        throw new Error(result.error || 'Erreur lors de la mise à jour de la course');
+      }
     } catch (error) {
       console.error('Error updating race:', error);
-      showToast('Erreur lors de la mise à jour de la course', 'error');
+      showToast(error.message || 'Erreur lors de la mise à jour de la course', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -101,13 +111,18 @@ const EditRace = ({ race, onRaceUpdated, onRaceDeleted, onRaceCanceled }) => {
     setIsDeleting(true);
 
     try {
-      // Delete race using API
-      await window.raceAPI.delete(race.id);
+      // Supprimer la course via le nouveau backend
+      const result = await window.VGTiming.deleteRace(race.id);
       
-      showToast('Course supprimée avec succès !', 'success');
-      onRaceDeleted(race.id);
+      if (result.success) {
+        showToast('Course supprimée avec succès !', 'success');
+        onRaceDeleted(race.id);
+      } else {
+        throw new Error(result.error || 'Erreur lors de la suppression de la course');
+      }
     } catch (error) {
       console.error('Error deleting race:', error);
+      showToast(error.message || 'Erreur lors de la suppression de la course', 'error');
       showToast('Erreur lors de la suppression de la course', 'error');
     } finally {
       setIsDeleting(false);

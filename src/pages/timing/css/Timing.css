@@ -168,6 +168,39 @@
   color: #a0aec0;
 }
 
+.sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.sort-label {
+  color: #a0aec0;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.sort-select {
+  padding: 0.5rem 0.75rem;
+  background: #1a202c;
+  border: 2px solid #4a5568;
+  border-radius: 6px;
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.sort-select:focus {
+  outline: none;
+  border-color: #3182ce;
+}
+
+.sort-select option {
+  background: #1a202c;
+  color: #e2e8f0;
+}
+
 .display-controls {
   display: flex;
   gap: 0.5rem;
