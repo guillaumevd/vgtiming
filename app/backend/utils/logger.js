@@ -1,10 +1,23 @@
 const winston = require('winston');
 const path = require('path');
-const { app } = require('electron');
 const fs = require('fs');
+const os = require('os');
+
+// Fonction pour obtenir le répertoire des logs
+function getLogDirectory() {
+  try {
+    const { app } = require('electron');
+    if (app && app.getPath) {
+      return path.join(app.getPath('userData'), 'logs');
+    }
+  } catch (error) {
+    // En cas d'erreur (ex: hors contexte Electron), utiliser un répertoire temporaire
+  }
+  return path.join(os.tmpdir(), 'vg-timing-logs');
+}
 
 // Créer le répertoire des logs
-const logDirectory = path.join(app.getPath('userData'), 'logs');
+const logDirectory = getLogDirectory();
 if (!fs.existsSync(logDirectory)) {
   fs.mkdirSync(logDirectory, { recursive: true });
 }
