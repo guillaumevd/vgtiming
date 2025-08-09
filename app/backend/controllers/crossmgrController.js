@@ -5,17 +5,9 @@ const logger = require('../utils/logger');
  */
 class CrossMgrController {
   constructor(services) {
-    this.services = services; // Garder une référence aux services
     this.crossMgrService = services.crossmgr;
     this.timingService = services.timing;
     this.setupEventListeners();
-  }
-
-  /**
-   * Obtenir le service CrossMgr (pour l'IPC)
-   */
-  get service() {
-    return this.crossMgrService;
   }
 
   /**
@@ -28,15 +20,15 @@ class CrossMgrController {
     });
 
     this.crossMgrService.on('connected', (data) => {
-      logger.info('CrossMgr: Client connecté', data);
+      // Log déjà géré par le service via sendLogToApp
     });
 
     this.crossMgrService.on('disconnected', () => {
-      logger.info('CrossMgr: Client déconnecté');
+      // Log déjà géré par le service via sendLogToApp  
     });
 
     this.crossMgrService.on('handshake_received', (data) => {
-      logger.info('CrossMgr: Handshake reçu', data);
+      // Log déjà géré par le service via sendLogToApp
     });
 
     this.crossMgrService.on('handshake_confirmed', () => {

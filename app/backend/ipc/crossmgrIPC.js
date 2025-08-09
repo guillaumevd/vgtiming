@@ -40,45 +40,14 @@ class CrossMgrIPCHandler {
     service.on('connected', (data) => {
       logger.debug('CrossMgr service: client connected');
       this.notifyFrontend('crossmgr:connected', data);
-      this.notifyFrontend('crossmgr:message', {
-        type: 'connection',
-        message: `📡 Client CrossMgr connecté depuis ${data.address}:${data.port}`,
-        timestamp: new Date().toISOString(),
-        direction: 'in'
-      });
-      
-      // Ajouter au journal d'activité
-      if (this.appLogService) {
-        this.appLogService.addLog(
-          `Client CrossMgr connecté depuis ${data.address}:${data.port}`, 
-          'success', 
-          'crossmgr',
-          { type: 'connection', address: data.address, port: data.port }
-        );
-      }
+      // Pas de message automatique - géré par sendLogToApp du service
     });
 
     // Écouter le handshake (première étape de connexion)
     service.on('handshake_received', (data) => {
       logger.debug('CrossMgr service: handshake received');
       this.notifyFrontend('crossmgr:handshake', data);
-      this.notifyFrontend('crossmgr:message', {
-        type: 'handshake',
-        message: `🤝 Handshake reçu: ${data.message}`,
-        response: 'GT',
-        timestamp: new Date().toISOString(),
-        direction: 'both'
-      });
-      
-      // Ajouter au journal d'activité
-      if (this.appLogService) {
-        this.appLogService.addLog(
-          data.message, 
-          'info', 
-          'crossmgr',
-          { type: 'handshake' }
-        );
-      }
+      // Pas de message automatique - géré par sendLogToApp du service
     });
 
     // Écouter la vraie connexion établie (message GT confirmé)
@@ -86,137 +55,32 @@ class CrossMgrIPCHandler {
       logger.debug('CrossMgr service: true connection established via GT message');
       logger.debug('About to send crossmgr:connection_established event to frontend');
       this.notifyFrontend('crossmgr:connection_established', { established: true, data });
-      this.notifyFrontend('crossmgr:message', {
-        type: 'connection_established',
-        message: `✅ Connexion CrossMgr établie (GT confirmé)`,
-        timestamp: new Date().toISOString(),
-        direction: 'in'
-      });
-      
-      // Ajouter au journal d'activité
-      if (this.appLogService) {
-        this.appLogService.addLog(
-          'Connexion CrossMgr établie (GT confirmé)', 
-          'success', 
-          'crossmgr',
-          { type: 'connection_established', gtMessage: data.message }
-        );
-      }
+      // Pas de message automatique - géré par sendLogToApp du service
     });
 
     // Écouter les messages de timing
     service.on('timing_message', (data) => {
       logger.debug('CrossMgr service: timing message received');
-      this.notifyFrontend('crossmgr:message', {
-        type: 'timing',
-        message: `⏱️ Message de timing: ${data.message}`,
-        response: 'S0000',
-        timestamp: new Date().toISOString(),
-        direction: 'both'
-      });
-      
-      // Ajouter au journal d'activité
-      if (this.appLogService) {
-        this.appLogService.addLog(
-          `Message de timing reçu (${data.message.substring(0, 30)}...)`, 
-          'info', 
-          'crossmgr',
-          { type: 'timing', message: data.message }
-        );
-      }
+      // Pas de message automatique - géré par sendLogToApp du service
     });
 
     // Écouter les données JSON
     service.on('timing_data', (data) => {
       logger.debug('CrossMgr service: timing data received');
-      this.notifyFrontend('crossmgr:message', {
-        type: 'data',
-        message: `📊 Données reçues - Type: ${data.type || 'unknown'}, Dossard: ${data.bib || 'N/A'}`,
-        response: 'S0000',
-        timestamp: new Date().toISOString(),
-        direction: 'both'
-      });
-      
-      // Ajouter au journal d'activité
-      if (this.appLogService) {
-        this.appLogService.addLog(
-          `Données CrossMgr - Type: ${data.type || 'unknown'}, Dossard: ${data.bib || 'N/A'}`, 
-          'info', 
-          'crossmgr',
-          { type: 'data', bibNumber: data.bib, dataType: data.type }
-        );
-      }
+      // Pas de message automatique - géré par sendLogToApp du service
     });
 
     // Écouter les messages envoyés par VG-Timing
     service.on('message_sent', (data) => {
       logger.debug('CrossMgr service: message sent');
-      this.notifyFrontend('crossmgr:message', {
-        type: `${data.type}_response`,
-        message: `📤 Réponse envoyée: ${data.message}`,
-        originalMessage: data.originalMessage || (data.originalData ? JSON.stringify(data.originalData) : ''),
-        timestamp: new Date().toISOString(),
-        direction: 'out'
-      });
-      
-      // Ajouter au journal d'activité (seulement pour les messages importants)
-      if (this.appLogService && data.type === 'handshake') {
-        this.appLogService.addLog(
-          `Réponse envoyée à CrossMgr: ${data.message}`, 
-          'info', 
-          'crossmgr',
-          { type: 'response', responseMessage: data.message, responseType: data.type }
-        );
-      }
+      // Pas de message automatique pour les réponses - éviter la pollution du journal
     });
 
     // Écouter les déconnexions
     service.on('disconnected', (data) => {
       logger.debug('CrossMgr service: client disconnected');
       this.notifyFrontend('crossmgr:disconnected', data);
-      
-      // Message différent selon la raison de déconnexion
-      let message = '📴 Client CrossMgr déconnecté';
-      let level = 'warning';
-      
-      if (data && data.reason) {
-        switch(data.reason) {
-          case 'client_close':
-            message = '📴 CrossMgr fermé normalement';
-            level = 'info';
-            break;
-          case 'error':
-          case 'error_close':
-            message = `❌ CrossMgr déconnecté suite à une erreur${data.errorMessage ? ': ' + data.errorMessage : ''}`;
-            level = 'error';
-            break;
-          case 'timeout':
-            message = '⏰ CrossMgr déconnecté (timeout - application probablement fermée)';
-            level = 'warning';
-            break;
-          case 'normal_close':
-            message = '📴 CrossMgr déconnecté normalement';
-            level = 'info';
-            break;
-        }
-      }
-      
-      this.notifyFrontend('crossmgr:message', {
-        type: 'disconnection',
-        message,
-        timestamp: new Date().toISOString(),
-        direction: 'system'
-      });
-      
-      // Ajouter au journal d'activité
-      if (this.appLogService) {
-        this.appLogService.addLog(
-          message.replace(/[📴❌⏰📡✅🤝⏱️📊]/g, '').trim(), 
-          level, 
-          'crossmgr',
-          { type: 'disconnection', reason: data?.reason, errorMessage: data?.errorMessage }
-        );
-      }
+      // Pas de message automatique - géré par sendLogToApp du service
     });
 
     // Écouter les erreurs

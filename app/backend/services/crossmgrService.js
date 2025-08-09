@@ -200,7 +200,7 @@ class CrossMgrService extends EventEmitter {
       if (message.startsWith('N0000')) {
         logger.info('CrossMgr: Handshake initial reçu, envoi de GT');
         socket.write('GT\r');
-        this.sendLogToApp(`🤝 ${message}`, 'info', 'crossmgr', { type: 'handshake' });
+        this.sendLogToApp(`🤝 Handshake reçu de CrossMgr`, 'info', 'crossmgr', { type: 'handshake' });
         this.emit('handshake_received', { message });
         this.emit('message_sent', { message: 'GT', originalMessage: message, type: 'handshake' });
         return;
@@ -209,31 +209,31 @@ class CrossMgrService extends EventEmitter {
       // Messages GT (vraie connexion établie) - Détection prioritaire
       if (message.startsWith('GT') && message.includes('date=')) {
         logger.info('CrossMgr: Message GT reçu - connexion vraiment établie');
-        socket.write('S0000\r');
         // C'est maintenant que la connexion est vraiment établie
         if (!this.isConnected) {
           this.isConnected = true;
+          socket.write('S0000\r'); // S0000 seulement au premier GT pour confirmer la connexion
           this.sendLogToApp(`✅ Connexion CrossMgr établie (GT confirmé)`, 'success');
           logger.debug('CrossMgr service: true connection established via GT message');
           this.emit('connection_established', { message });
+          this.emit('message_sent', { message: 'S0000', originalMessage: message, type: 'connection_confirm' });
+        } else {
+          // Messages GT suivants (timing) - afficher le message complet
+          this.sendLogToApp(`⏱️ ${message}`, 'info', 'crossmgr', { type: 'timing' });
         }
-        this.sendLogToApp(`⏱️ ${message}`, 'info', 'crossmgr', { type: 'timing' });
-        this.emit('timing_message', { message });
-        this.emit('message_sent', { message: 'S0000', originalMessage: message, type: 'timing' });
+        // Pas d'événement timing_message pour éviter les doublons de logs
         return;
       }
 
-      // Autres messages de timing CrossMgr (après connexion établie)
+      // Autres messages de timing CrossMgr (après connexion établie) - afficher le message complet
       if (message.includes('date=') || message.includes('time=')) {
-        logger.info('CrossMgr: Message de timing reçu, envoi de S0000');
-        socket.write('S0000\r');
+        logger.info('CrossMgr: Message de timing reçu');
         this.sendLogToApp(`⏱️ ${message}`, 'info', 'crossmgr', { type: 'timing' });
-        this.emit('timing_message', { message });
-        this.emit('message_sent', { message: 'S0000', originalMessage: message, type: 'timing' });
+        // Pas d'événement timing_message pour éviter les doublons de logs
         return;
       }
 
-      // Messages JSON (données de timing)
+      // Messages JSON (données de timing) - pas de réponse automatique
       if (message.startsWith('{') && message.endsWith('}')) {
         try {
           const data = JSON.parse(message);
@@ -241,10 +241,9 @@ class CrossMgrService extends EventEmitter {
             type: data.type || 'unknown',
             bib: data.bib || 'unknown' 
           });
-          socket.write('S0000\r'); // Confirmer réception
           this.sendLogToApp(`📊 Données CrossMgr - Type: ${data.type || 'unknown'}, Dossard: ${data.bib || 'N/A'}`, 'info');
           this.emit('timing_data', data);
-          this.emit('message_sent', { message: 'S0000', originalData: data, type: 'data' });
+          // Pas de S0000 automatique pour les données JSON
         } catch (parseError) {
           logger.warn('CrossMgr: Erreur parsing JSON', { 
             message, 

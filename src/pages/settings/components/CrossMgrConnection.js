@@ -55,43 +55,54 @@ const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
       let logType = 'info';
       let logMessage = '';
 
-      switch (messageData.type) {
-        case 'connection':
-          logType = 'success';
-          logMessage = `📡 ${messageData.message}`;
-          break;
-        case 'handshake':
-          logType = 'success';
-          logMessage = `🤝 ${messageData.message} → Réponse: ${messageData.response}`;
-          break;
-        case 'handshake_response':
-          logType = 'info';
-          logMessage = `📤 ${messageData.message}`;
-          break;
-        case 'timing':
-          logType = 'info';
-          logMessage = `⏱️ ${messageData.message} → Réponse: ${messageData.response}`;
-          break;
-        case 'timing_response':
-          logType = 'info';
-          logMessage = `📤 ${messageData.message}`;
-          break;
-        case 'data':
-          logType = 'success';
-          logMessage = `📊 ${messageData.message} → Réponse: ${messageData.response}`;
-          break;
-        case 'data_response':
-          logType = 'info';
-          logMessage = `📤 ${messageData.message}`;
-          break;
-        case 'disconnection':
-          logType = 'warning';
-          logMessage = `📴 ${messageData.message}`;
-          break;
-        default:
-          logType = 'info';
-          logMessage = `💬 ${messageData.message}`;
-          break;
+      // Fonction pour vérifier si un message contient déjà un emoji
+      const hasEmoji = (text) => /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/u.test(text);
+
+      // Si le message contient déjà un emoji, on l'utilise tel quel SANS MODIFICATION
+      if (hasEmoji(messageData.message)) {
+        logMessage = messageData.message;
+        logType = messageData.type === 'disconnection' ? 'warning' : 
+                 messageData.type === 'connection' || messageData.type === 'connection_established' ? 'success' : 'info';
+      } else {
+        // Sinon on ajoute un emoji selon le type
+        switch (messageData.type) {
+          case 'connection':
+            logType = 'success';
+            logMessage = `📡 ${messageData.message}`;
+            break;
+          case 'handshake':
+            logType = 'success';
+            logMessage = `🤝 ${messageData.message}`;
+            break;
+          case 'handshake_response':
+            logType = 'info';
+            logMessage = `📤 ${messageData.message}`;
+            break;
+          case 'timing':
+            logType = 'info';
+            logMessage = `⏱️ ${messageData.message}`;
+            break;
+          case 'timing_response':
+            logType = 'info';
+            logMessage = `📤 ${messageData.message}`;
+            break;
+          case 'data':
+            logType = 'success';
+            logMessage = `📊 ${messageData.message}`;
+            break;
+          case 'data_response':
+            logType = 'info';
+            logMessage = `📤 ${messageData.message}`;
+            break;
+          case 'disconnection':
+            logType = 'warning';
+            logMessage = `📴 ${messageData.message}`;
+            break;
+          default:
+            logType = 'info';
+            logMessage = `💬 ${messageData.message}`;
+            break;
+        }
       }
 
       onLog(logMessage, logType);
