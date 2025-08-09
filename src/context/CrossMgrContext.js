@@ -51,8 +51,14 @@ export const CrossMgrProvider = ({ children }) => {
     };
 
     const handleCrossMgrDisconnected = (event, data) => {
-      // Toujours passer en DISCONNECTED lors d'une déconnexion
-      setConnectionStatus(CROSSMGR_STATUS.DISCONNECTED);
+      // Distinguer déconnexion client vs arrêt serveur
+      if (data?.serverStopped) {
+        // Serveur VG-Timing arrêté = vraiment déconnecté
+        setConnectionStatus(CROSSMGR_STATUS.DISCONNECTED);
+      } else {
+        // Client CrossMgr déconnecté mais serveur en écoute = en attente de reconnexion
+        setConnectionStatus(CROSSMGR_STATUS.CONNECTING);
+      }
       setLastError(null);
       console.log('CrossMgr disconnected:', data);
     };

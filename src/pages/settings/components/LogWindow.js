@@ -12,10 +12,10 @@ const LOG_LEVELS = {
 const LogWindow = ({ logs, onClearLogs }) => {
   const logContentRef = useRef(null);
 
-  // Auto-scroll to bottom when new logs are added
+  // Auto-scroll to top when new logs are added (newest first)
   useEffect(() => {
     if (logContentRef.current) {
-      logContentRef.current.scrollTop = logContentRef.current.scrollHeight;
+      logContentRef.current.scrollTop = 0;
     }
   }, [logs]);
 

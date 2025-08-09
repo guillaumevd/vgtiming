@@ -118,7 +118,7 @@ const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
   };
 
   const handleConnect = async () => {
-    onLog(`Démarrage du serveur CrossMgr sur ${localSettings.crossmgrHost}:${localSettings.crossmgrPort}`, 'info');
+    // Message supprimé - géré par le backend service
     
     try {
       await connect();
@@ -244,9 +244,11 @@ const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
         <button 
           className="crossmgr-button connect-button"
           onClick={handleConnect}
-          disabled={isLoading || connectionStatus === CONNECTION_STATUS.CONNECTED}
+          disabled={isLoading || connectionStatus === CONNECTION_STATUS.CONNECTED || connectionStatus === CONNECTION_STATUS.CONNECTING}
         >
-          {connectionStatus === CONNECTION_STATUS.CONNECTING ? 'Démarrage...' : 'Démarrer le serveur'}
+          {connectionStatus === CONNECTION_STATUS.CONNECTING ? 'En attente...' : 
+           connectionStatus === CONNECTION_STATUS.CONNECTED ? 'Serveur actif' :
+           'Démarrer le serveur'}
         </button>
         
         <button 

@@ -113,6 +113,15 @@ class CrossMgrService extends EventEmitter {
             logger.info('CrossMgr: Écoute arrêtée');
             // Un seul message consolidé pour l'arrêt
             this.sendLogToApp('🔌 CrossMgr arrêté', 'info', 'crossmgr', { type: 'server_stop' });
+            
+            // Émettre un événement spécial pour l'arrêt complet du serveur
+            this.emit('disconnected', {
+              reason: 'server_stopped',
+              errorMessage: null,
+              timestamp: new Date().toISOString(),
+              serverStopped: true // Serveur complètement arrêté
+            });
+            
             resolve();
           });
         });
@@ -285,17 +294,28 @@ class CrossMgrService extends EventEmitter {
     const disconnectData = {
       reason,
       errorMessage,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      serverStopped: false // Client déconnecté mais serveur toujours en écoute
     };
     
     logger.info('CrossMgr: Client déconnecté', disconnectData);
     
-    // Un seul message simple pour toutes les déconnexions
-    this.sendLogToApp('📴 CrossMgr déconnecté', 'warning', 'crossmgr', { 
-      type: 'disconnection', 
-      reason, 
-      errorMessage 
-    });
+    // Un seul message simple selon le contexte
+    if (this.isListening) {
+      // Client déconnecté mais serveur encore en écoute = attendre reconnexion
+      this.sendLogToApp('📴 CrossMgr déconnecté (en attente de reconnexion)', 'info', 'crossmgr', { 
+        type: 'client_disconnection', 
+        reason, 
+        errorMessage 
+      });
+    } else {
+      // Serveur arrêté = vraie déconnexion
+      this.sendLogToApp('📴 CrossMgr déconnecté', 'warning', 'crossmgr', { 
+        type: 'disconnection', 
+        reason, 
+        errorMessage 
+      });
+    }
     
     // Émettre l'événement de déconnexion
     this.emit('disconnected', disconnectData);
