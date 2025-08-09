@@ -12,6 +12,9 @@ import './assets/css/override.css'
 // Logger
 import { LogProvider } from './logger/LogContext';
 
+// App Context
+import { AppProvider } from './context/AppContext';
+
 // CrossMgr Context
 import { CrossMgrProvider } from './context/CrossMgrContext';
 
@@ -62,22 +65,24 @@ function App() {
   return (
     <>
       <AppTitleBar />
-      <LogProvider>
-        <CrossMgrProvider>
-          <Sidebar/>
-          <Pages>
-            <AnimatePresence mode='wait'>
-              <Routes location={location} key={location.pathname}>
-                <Route exact path={ROUTES.HOME} element={<Home />} />
-                <Route path={ROUTES.TIMING} element={<Timing/>} />
-                <Route path={ROUTES.RACES} element={<Races/>} />
-                <Route path={ROUTES.NEWS} element={<News/>} />
-                <Route path={ROUTES.SETTINGS} element={<Settings/>} />
-              </Routes>
-            </AnimatePresence>
-          </Pages>
-        </CrossMgrProvider>
-      </LogProvider>
+      <AppProvider>
+        <LogProvider>
+          <CrossMgrProvider>
+            <Sidebar/>
+            <Pages>
+              <AnimatePresence mode='wait'>
+                <Routes location={location} key={location.pathname}>
+                  <Route exact path={ROUTES.HOME} element={<Home />} />
+                  <Route path={ROUTES.TIMING} element={<Timing/>} />
+                  <Route path={ROUTES.RACES} element={<Races/>} />
+                  <Route path={ROUTES.NEWS} element={<News/>} />
+                  <Route path={ROUTES.SETTINGS} element={<Settings/>} />
+                </Routes>
+              </AnimatePresence>
+            </Pages>
+          </CrossMgrProvider>
+        </LogProvider>
+      </AppProvider>
     </>
   );
 }

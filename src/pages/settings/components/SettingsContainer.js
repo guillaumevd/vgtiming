@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import GeneralSettings from './GeneralSettings';
 import CrossMgrConnection from './CrossMgrConnection';
 import LogWindow from './LogWindow';
+import { useApp } from '../../../context/AppContext';
 import '../css/SettingsContainer.css';
 
 // Log levels constants
@@ -14,16 +15,17 @@ const LOG_LEVELS = {
 
 const SettingsContainer = () => {
   const [settings, setSettings] = useState({});
-  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiReady, setApiReady] = useState(false);
+  
+  // Utiliser le contexte global pour les logs
+  const { logs, addLog, clearLogs } = useApp();
 
   useEffect(() => {
     // Vérifier si l'API est déjà prête
     if (window.VGTiming && window.VGTiming.isReady) {
       setApiReady(true);
       loadSettings();
-      setupLogListeners(); // Ajouter ici aussi
     } else {
       // Écouter l'événement de l'API prête
       const handleAPIReady = async (event) => {
@@ -31,36 +33,16 @@ const SettingsContainer = () => {
           setApiReady(true);
           window.removeEventListener('vgtiming-ready', handleAPIReady);
           await loadSettings();
-          setupLogListeners(); // Ajouter ici
         }
       };
       window.addEventListener('vgtiming-ready', handleAPIReady);
 
       return () => {
         window.removeEventListener('vgtiming-ready', handleAPIReady);
-        // Nettoyer les listeners de logs
-        if (window.appLogAPI) {
-          window.appLogAPI.removeLogListeners();
-        }
+        // Logs maintenant gérés par le contexte global
       };
     }
   }, []);
-
-  // Configurer les listeners pour les nouveaux logs - Version simplifiée
-  const setupLogListeners = () => {
-    if (!window.appLogAPI) return;
-
-    window.appLogAPI.onLogAdd((event, logData) => {
-      // Convertir le format du backend vers le format local
-      const newLog = {
-        id: Date.now() + Math.random(),
-        timestamp: Date.now(),
-        message: logData.message,
-        level: logData.level
-      };
-      setLogs(prev => [newLog, ...prev].slice(0, 100));
-    });
-  };
 
   const loadSettings = async () => {
     try {
@@ -121,22 +103,6 @@ const SettingsContainer = () => {
       console.error('Failed to save setting:', error);
       addLog(`Erreur lors de la sauvegarde du paramètre "${key}": ${error.message}`, LOG_LEVELS.ERROR);
     }
-  };
-
-  const addLog = (message, level = LOG_LEVELS.INFO) => {
-    // Version simplifiée - ajout local uniquement
-    const newLog = {
-      id: Date.now() + Math.random(),
-      timestamp: Date.now(),
-      message,
-      level
-    };
-    setLogs(prev => [newLog, ...prev].slice(0, 100));
-  };
-
-  const clearLogs = () => {
-    setLogs([]);
-    addLog('Journal d\'activité effacé', LOG_LEVELS.INFO);
   };
 
   return (
