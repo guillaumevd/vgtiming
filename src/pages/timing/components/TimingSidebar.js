@@ -5,6 +5,8 @@ const TimingSidebar = ({
   selectedRace,
   onRaceSelect,
   crossmgrStatus,
+  crossmgrStatusText,
+  isConnected,
   raceStatus,
   onStartRace,
   onStopRace,
@@ -74,14 +76,13 @@ const TimingSidebar = ({
                 </div>
                 <div className="status-card-body">
                   <div className={`status-badge status-badge-${crossmgrStatus}`}>
-                    {crossmgrStatus === 'connected' && 'Connecté'}
-                    {crossmgrStatus === 'connecting' && 'Connexion...'}
-                    {crossmgrStatus === 'disconnected' && 'Déconnecté'}
+                    {crossmgrStatusText}
                   </div>
                   <div className="status-details">
                     {crossmgrStatus === 'connected' && 'Prêt à recevoir des données'}
-                    {crossmgrStatus === 'connecting' && 'Tentative de connexion en cours'}
+                    {crossmgrStatus === 'connecting' && 'En attente de client CrossMgr'}
                     {crossmgrStatus === 'disconnected' && 'Vérifiez la connexion réseau'}
+                    {crossmgrStatus === 'error' && 'Erreur de connexion'}
                   </div>
                 </div>
               </div>
@@ -241,9 +242,11 @@ const TimingSidebar = ({
               </div>
             )}
 
-            {crossmgrStatus === 'disconnected' && (
+            {!isConnected && (
               <div className="connection-info">
-                💡 Assurez-vous que CrossMGR est lancé et connecté au même réseau
+                💡 {crossmgrStatus === 'disconnected' 
+                  ? 'Assurez-vous que CrossMGR est lancé et connecté au même réseau' 
+                  : 'En attente de connexion de CrossMgr...'}
               </div>
             )}
           </div>

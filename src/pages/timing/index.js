@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useCrossMgr } from '../../context/CrossMgrContext';
 import TimingDisplay from './components/TimingDisplay';
 import TimingSidebar from './components/TimingSidebar';
 import './css/Timing.css';
@@ -9,7 +10,6 @@ const Timing = () => {
   const [displayMode, setDisplayMode] = useState('list'); // 'list' ou 'grid'
   const [timingData, setTimingData] = useState([]);
   const [participants, setParticipants] = useState([]);
-  const [crossmgrStatus, setCrossmgrStatus] = useState('disconnected');
   const [raceStatus, setRaceStatus] = useState('ready');
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState({
@@ -17,6 +17,9 @@ const Timing = () => {
     sortType: 'bestLap',
     refreshRate: 1000
   });
+
+  // Utiliser le contexte CrossMgr au lieu de l'état local
+  const { connectionStatus, getStatusText, isConnected } = useCrossMgr();
 
   useEffect(() => {
     const initializeTiming = async () => {
@@ -262,7 +265,9 @@ const Timing = () => {
               races={races}
               selectedRace={selectedRace}
               onRaceSelect={handleRaceSelect}
-              crossmgrStatus={crossmgrStatus}
+              crossmgrStatus={connectionStatus}
+              crossmgrStatusText={getStatusText()}
+              isConnected={isConnected}
               raceStatus={raceStatus}
               onStartRace={handleStartRace}
               onStopRace={handleStopRace}

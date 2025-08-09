@@ -49,6 +49,8 @@ class BackendManager {
       // 5. Initialiser les gestionnaires IPC
       this.initializeIPC();
 
+      // CrossMgr ne démarre plus automatiquement - seulement sur action utilisateur
+
       this.isInitialized = true;
       logger.info('Backend initialisé avec succès');
 
@@ -100,7 +102,8 @@ class BackendManager {
    */
   initializeServices() {
     try {
-      this.services = new ServiceFactory(this.models).getAllServices();
+      this.serviceFactory = new ServiceFactory(this.models, this.mainWindow);
+      this.services = this.serviceFactory.getAllServices();
       logger.info('Services initialisés');
     } catch (error) {
       logger.error('Erreur lors de l\'initialisation des services:', error);
@@ -113,7 +116,12 @@ class BackendManager {
    */
   initializeControllers() {
     try {
-      this.controllers = new ControllerFactory(this.services).getAllControllers();
+      this.controllerFactory = new ControllerFactory(this.services);
+      this.controllers = this.controllerFactory.getAllControllers();
+      
+      // Ajouter une référence au service factory pour l'accès aux services
+      this.controllers._serviceFactory = this.serviceFactory;
+      
       logger.info('Controllers initialisés');
     } catch (error) {
       logger.error('Erreur lors de l\'initialisation des controllers:', error);
@@ -126,9 +134,15 @@ class BackendManager {
    */
   setMainWindow(mainWindow) {
     this.mainWindow = mainWindow;
-    // Mettre à jour le handler système si déjà initialisé
-    if (this.ipcManager && this.ipcManager.handlers && this.ipcManager.handlers.system) {
-      this.ipcManager.handlers.system.mainWindow = mainWindow;
+    
+    // Mettre à jour le service factory si déjà initialisé
+    if (this.serviceFactory) {
+      this.serviceFactory.setMainWindow(mainWindow);
+    }
+    
+    // Mettre à jour l'IPC Manager si déjà initialisé
+    if (this.ipcManager) {
+      this.ipcManager.setMainWindow(mainWindow);
     }
   }
 
@@ -147,6 +161,28 @@ class BackendManager {
   }
 
   /**
+   * Initialiser CrossMgr (démarrage automatique de l'écoute)
+   */
+  async initializeCrossMgr() {
+    try {
+      // Démarrer automatiquement l'écoute CrossMgr
+      const crossMgrController = this.controllers.crossmgr;
+      const result = await crossMgrController.startConnection();
+      
+      if (result.success) {
+        logger.info('CrossMgr: Écoute démarrée automatiquement au lancement');
+      } else {
+        logger.warn('CrossMgr: Impossible de démarrer l\'écoute automatiquement', { 
+          error: result.error 
+        });
+      }
+    } catch (error) {
+      logger.error('Erreur lors de l\'initialisation de CrossMgr:', error);
+      // Ne pas faire échouer le démarrage du backend si CrossMgr ne peut pas démarrer
+    }
+  }
+
+  /**
    * Obtenir le chemin de la base de données
    */
   getDatabasePath() {
@@ -160,6 +196,11 @@ class BackendManager {
   async cleanup() {
     try {
       logger.info('Nettoyage du backend...');
+
+      // Nettoyer CrossMgr
+      if (this.controllers && this.controllers.crossmgr) {
+        await this.controllers.crossmgr.cleanup();
+      }
 
       // Nettoyer les gestionnaires IPC
       if (this.ipcManager) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useCrossMgr } from '../../context/CrossMgrContext';
 import './css/Home.css';
 
 const Home = () => {
@@ -12,7 +13,6 @@ const Home = () => {
   });
 
   const [systemStatus, setSystemStatus] = useState({
-    crossmgr: 'disconnected',
     database: 'connected',
     timing: 'ready',
     api: 'connecting'
@@ -21,16 +21,15 @@ const Home = () => {
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  // Utiliser le contexte CrossMgr pour le statut
+  const { connectionStatus, getStatusText: getCrossMgrStatusText, isConnected } = useCrossMgr();
+
   useEffect(() => {
     loadDashboardData();
     loadRecentActivities();
     
-    // Actualiser les données toutes les 30 secondes
-    const interval = setInterval(() => {
-      loadDashboardData();
-    }, 30000);
-    
-    return () => clearInterval(interval);
+    // Auto-refresh supprimé pour éviter le spam de logs
+    // Les données peuvent être rafraîchies manuellement si nécessaire
   }, []);
 
   const loadDashboardData = async () => {
@@ -167,7 +166,7 @@ const Home = () => {
     }
   };
 
-  const getStatusText = (status) => {
+  const getSystemStatusText = (status) => {
     switch (status) {
       case 'connected': return 'Connecté';
       case 'disconnected': return 'Déconnecté';
@@ -310,7 +309,7 @@ const Home = () => {
               <span className="stat-label">Base</span>
             </div>
             <div className="stat-item">
-              <span className="stat-value">{systemStatus.crossmgr === 'connected' ? '✓' : '✗'}</span>
+              <span className="stat-value">{isConnected ? '✓' : '✗'}</span>
               <span className="stat-label">CrossMgr</span>
             </div>
             <div className="stat-item">
@@ -354,19 +353,19 @@ const Home = () => {
           </h3>
           <div className="status-grid">
             <div className="status-item">
-              <div className={`status-indicator ${systemStatus.crossmgr === 'connected' ? 'status-connected' : 'status-disconnected'}`}></div>
+              <div className={`status-indicator ${isConnected ? 'status-connected' : 'status-disconnected'}`}></div>
               <div className="status-label">CrossMgr</div>
-              <div className="status-value">{getStatusText(systemStatus.crossmgr)}</div>
+              <div className="status-value">{getCrossMgrStatusText()}</div>
             </div>
             <div className="status-item">
               <div className={`status-indicator ${systemStatus.database === 'connected' ? 'status-connected' : 'status-disconnected'}`}></div>
               <div className="status-label">Base de données</div>
-              <div className="status-value">{getStatusText(systemStatus.database)}</div>
+              <div className="status-value">{getSystemStatusText(systemStatus.database)}</div>
             </div>
             <div className="status-item">
               <div className={`status-indicator ${systemStatus.timing === 'ready' ? 'status-connected' : 'status-disconnected'}`}></div>
               <div className="status-label">Chronométrage</div>
-              <div className="status-value">{getStatusText(systemStatus.timing)}</div>
+              <div className="status-value">{getSystemStatusText(systemStatus.timing)}</div>
             </div>
           </div>
         </div>

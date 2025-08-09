@@ -1,12 +1,9 @@
 import React, { useState, useEffect } from 'react';
+import { useCrossMgr, CROSSMGR_STATUS } from '../../../context/CrossMgrContext';
 import '../css/CrossMgrConnection.css';
 
-// Connection status constants
-const CONNECTION_STATUS = {
-  CONNECTED: 'connected',
-  CONNECTING: 'connecting',
-  DISCONNECTED: 'disconnected'
-};
+// Connection status constants - utiliser ceux du contexte
+const CONNECTION_STATUS = CROSSMGR_STATUS;
 
 // Default CrossMgr settings
 const DEFAULT_CROSSMGR_SETTINGS = {
@@ -20,7 +17,17 @@ const DEFAULT_CROSSMGR_SETTINGS = {
 
 const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
   const [localSettings, setLocalSettings] = useState(DEFAULT_CROSSMGR_SETTINGS);
-  const [connectionStatus, setConnectionStatus] = useState(CONNECTION_STATUS.DISCONNECTED);
+  
+  // Utiliser le contexte CrossMgr au lieu de l'état local
+  const {
+    connectionStatus,
+    isLoading,
+    lastError,
+    connect,
+    disconnect,
+    getStatusText,
+    checkConnectionStatus
+  } = useCrossMgr();
 
   useEffect(() => {
     // Charger les paramètres existants
@@ -30,44 +37,100 @@ const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
     }));
   }, [settings]);
 
+  // Surveiller les changements de statut pour loguer automatiquement
+  useEffect(() => {
+    if (connectionStatus === CONNECTION_STATUS.CONNECTED) {
+      onLog('Connexion à CrossMgr établie automatiquement après handshake', 'success');
+    } else if (connectionStatus === CONNECTION_STATUS.DISCONNECTED && !isLoading) {
+      onLog('Connexion à CrossMgr fermée', 'warning');
+    } else if (connectionStatus === CONNECTION_STATUS.ERROR && lastError) {
+      onLog(`Erreur CrossMgr: ${lastError}`, 'error');
+    }
+  }, [connectionStatus, lastError, isLoading]); // Enlever onLog des dépendances
+
+  // Écouter les messages de communication CrossMgr
+  useEffect(() => {
+    const handleCrossMgrMessage = (event) => {
+      const messageData = event.detail;
+      let logType = 'info';
+      let logMessage = '';
+
+      switch (messageData.type) {
+        case 'connection':
+          logType = 'success';
+          logMessage = `📡 ${messageData.message}`;
+          break;
+        case 'handshake':
+          logType = 'success';
+          logMessage = `🤝 ${messageData.message} → Réponse: ${messageData.response}`;
+          break;
+        case 'handshake_response':
+          logType = 'info';
+          logMessage = `📤 ${messageData.message}`;
+          break;
+        case 'timing':
+          logType = 'info';
+          logMessage = `⏱️ ${messageData.message} → Réponse: ${messageData.response}`;
+          break;
+        case 'timing_response':
+          logType = 'info';
+          logMessage = `📤 ${messageData.message}`;
+          break;
+        case 'data':
+          logType = 'success';
+          logMessage = `📊 ${messageData.message} → Réponse: ${messageData.response}`;
+          break;
+        case 'data_response':
+          logType = 'info';
+          logMessage = `📤 ${messageData.message}`;
+          break;
+        case 'disconnection':
+          logType = 'warning';
+          logMessage = `📴 ${messageData.message}`;
+          break;
+        default:
+          logType = 'info';
+          logMessage = `💬 ${messageData.message}`;
+          break;
+      }
+
+      onLog(logMessage, logType);
+    };
+
+    // Écouter les événements de messages CrossMgr
+    window.addEventListener('crossmgr-message', handleCrossMgrMessage);
+
+    return () => {
+      window.removeEventListener('crossmgr-message', handleCrossMgrMessage);
+    };
+  }, [onLog]);
+
   const handleChange = (key, value) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
     onSettingChange(key, value);
     onLog(`Paramètre CrossMgr modifié: ${key} = ${value}`, 'info');
   };
 
-  const handleConnect = () => {
-    setConnectionStatus(CONNECTION_STATUS.CONNECTING);
-    onLog(`Tentative de connexion à CrossMgr sur ${localSettings.crossmgrHost}:${localSettings.crossmgrPort}`, 'info');
+  const handleConnect = async () => {
+    onLog(`Démarrage du serveur CrossMgr sur ${localSettings.crossmgrHost}:${localSettings.crossmgrPort}`, 'info');
     
-    // Simulation de connexion (à remplacer par la vraie logique plus tard)
-    setTimeout(() => {
-      const success = Math.random() > 0.3; // 70% de chance de succès pour la démo
-      if (success) {
-        setConnectionStatus(CONNECTION_STATUS.CONNECTED);
-        onLog('Connexion à CrossMgr établie avec succès', 'success');
-      } else {
-        setConnectionStatus(CONNECTION_STATUS.DISCONNECTED);
-        onLog('Échec de la connexion à CrossMgr', 'error');
-      }
-    }, 2000);
+    try {
+      await connect();
+      // Le statut sera automatiquement mis à jour par le contexte
+      // après réception du handshake GT
+    } catch (error) {
+      // L'erreur sera automatiquement loggée par l'effet useEffect
+    }
   };
 
-  const handleDisconnect = () => {
-    setConnectionStatus(CONNECTION_STATUS.DISCONNECTED);
+  const handleDisconnect = async () => {
     onLog('Déconnexion de CrossMgr', 'info');
-  };
-
-  const handleTest = () => {
-    onLog('Test de connexion CrossMgr - À implémenter', 'warning');
-  };
-
-  const getStatusText = () => {
-    switch (connectionStatus) {
-      case CONNECTION_STATUS.CONNECTED: return 'Connecté à CrossMgr';
-      case CONNECTION_STATUS.CONNECTING: return 'Connexion en cours...';
-      case CONNECTION_STATUS.DISCONNECTED: return 'Déconnecté';
-      default: return 'État inconnu';
+    
+    try {
+      await disconnect();
+      onLog('Déconnexion de CrossMgr réussie', 'success');
+    } catch (error) {
+      onLog(`Erreur lors de la déconnexion: ${error.message}`, 'error');
     }
   };
 
@@ -175,24 +238,17 @@ const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
         <button 
           className="crossmgr-button connect-button"
           onClick={handleConnect}
-          disabled={connectionStatus === CONNECTION_STATUS.CONNECTING || connectionStatus === CONNECTION_STATUS.CONNECTED}
+          disabled={isLoading || connectionStatus === CONNECTION_STATUS.CONNECTED}
         >
-          {connectionStatus === CONNECTION_STATUS.CONNECTING ? 'Connexion...' : 'Connecter'}
+          {connectionStatus === CONNECTION_STATUS.CONNECTING ? 'Démarrage...' : 'Démarrer le serveur'}
         </button>
         
         <button 
           className="crossmgr-button disconnect-button"
           onClick={handleDisconnect}
-          disabled={connectionStatus === CONNECTION_STATUS.DISCONNECTED}
+          disabled={isLoading || connectionStatus === CONNECTION_STATUS.DISCONNECTED}
         >
-          Déconnecter
-        </button>
-        
-        <button 
-          className="crossmgr-button test-button"
-          onClick={handleTest}
-        >
-          Tester
+          {isLoading && connectionStatus === CONNECTION_STATUS.CONNECTED ? 'Arrêt...' : 'Arrêter le serveur'}
         </button>
       </div>
     </div>

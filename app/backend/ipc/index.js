@@ -4,6 +4,8 @@ const TimingIPCHandler = require('./timingIPC');
 const SettingsIPCHandler = require('./settingsIPC');
 const AppIPCHandler = require('./appIPC');
 const SystemIPCHandler = require('./systemIPC');
+const CrossMgrIPCHandler = require('./crossmgrIPC');
+const AppLogIPCHandler = require('./appLogIPC');
 const logger = require('../utils/logger');
 
 class IPCManager {
@@ -30,6 +32,8 @@ class IPCManager {
         participant: new ParticipantIPCHandler(this.controllers),
         timing: new TimingIPCHandler(this.controllers),
         settings: new SettingsIPCHandler(this.controllers),
+        crossmgr: new CrossMgrIPCHandler(this.controllers, this.mainWindow), // Passer mainWindow
+        appLog: new AppLogIPCHandler(this.controllers, this.mainWindow), // Gestionnaire de logs d'application
         app: new AppIPCHandler(), // Pas besoin de controllers pour les fonctions app
         system: new SystemIPCHandler(this.mainWindow) // Besoin de mainWindow pour les dialogues
       };
@@ -39,6 +43,23 @@ class IPCManager {
     } catch (error) {
       logger.error('Erreur lors de l\'initialisation du IPC Manager:', error);
       throw error;
+    }
+  }
+
+  /**
+   * Définir la fenêtre principale après initialisation
+   */
+  setMainWindow(mainWindow) {
+    this.mainWindow = mainWindow;
+    // Mettre à jour les gestionnaires qui ont besoin de mainWindow
+    if (this.handlers.crossmgr) {
+      this.handlers.crossmgr.mainWindow = mainWindow;
+    }
+    if (this.handlers.appLog) {
+      this.handlers.appLog.mainWindow = mainWindow;
+    }
+    if (this.handlers.system) {
+      this.handlers.system.mainWindow = mainWindow;
     }
   }
 

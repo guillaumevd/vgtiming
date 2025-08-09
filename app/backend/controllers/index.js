@@ -2,6 +2,7 @@ const RaceController = require('./raceController');
 const ParticipantController = require('./participantController');
 const TimingController = require('./timingController');
 const SettingsController = require('./settingsController');
+const CrossMgrController = require('./crossmgrController');
 
 /**
  * Factory pour créer les instances des controllers avec les services
@@ -53,6 +54,16 @@ class ControllerFactory {
   }
 
   /**
+   * Obtenir une instance du controller CrossMgr
+   */
+  getCrossMgrController() {
+    if (!this._controllers.crossmgr) {
+      this._controllers.crossmgr = new CrossMgrController(this.services);
+    }
+    return this._controllers.crossmgr;
+  }
+
+  /**
    * Obtenir tous les controllers
    */
   getAllControllers() {
@@ -60,7 +71,8 @@ class ControllerFactory {
       race: this.getRaceController(),
       participant: this.getParticipantController(),
       timing: this.getTimingController(),
-      settings: this.getSettingsController()
+      settings: this.getSettingsController(),
+      crossmgr: this.getCrossMgrController()
     };
   }
 
@@ -77,5 +89,6 @@ module.exports = {
   ParticipantController,
   TimingController,
   SettingsController,
+  CrossMgrController,
   ControllerFactory
 };

@@ -23,6 +23,7 @@ const SettingsContainer = () => {
     if (window.VGTiming && window.VGTiming.isReady) {
       setApiReady(true);
       loadSettings();
+      setupLogListeners(); // Ajouter ici aussi
     } else {
       // Écouter l'événement de l'API prête
       const handleAPIReady = async (event) => {
@@ -30,15 +31,36 @@ const SettingsContainer = () => {
           setApiReady(true);
           window.removeEventListener('vgtiming-ready', handleAPIReady);
           await loadSettings();
+          setupLogListeners(); // Ajouter ici
         }
       };
       window.addEventListener('vgtiming-ready', handleAPIReady);
 
       return () => {
         window.removeEventListener('vgtiming-ready', handleAPIReady);
+        // Nettoyer les listeners de logs
+        if (window.appLogAPI) {
+          window.appLogAPI.removeLogListeners();
+        }
       };
     }
   }, []);
+
+  // Configurer les listeners pour les nouveaux logs - Version simplifiée
+  const setupLogListeners = () => {
+    if (!window.appLogAPI) return;
+
+    window.appLogAPI.onLogAdd((event, logData) => {
+      // Convertir le format du backend vers le format local
+      const newLog = {
+        id: Date.now() + Math.random(),
+        timestamp: Date.now(),
+        message: logData.message,
+        level: logData.level
+      };
+      setLogs(prev => [newLog, ...prev].slice(0, 100));
+    });
+  };
 
   const loadSettings = async () => {
     try {
@@ -102,13 +124,14 @@ const SettingsContainer = () => {
   };
 
   const addLog = (message, level = LOG_LEVELS.INFO) => {
+    // Version simplifiée - ajout local uniquement
     const newLog = {
-      id: Date.now(),
+      id: Date.now() + Math.random(),
       timestamp: Date.now(),
       message,
       level
     };
-    setLogs(prev => [newLog, ...prev].slice(0, 100)); // Limite à 100 logs
+    setLogs(prev => [newLog, ...prev].slice(0, 100));
   };
 
   const clearLogs = () => {

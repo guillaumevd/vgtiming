@@ -36,6 +36,35 @@ contextBridge.exposeInMainWorld('raceAPI', {
 contextBridge.exposeInMainWorld('electronAPI', {
   fetch: async (url) => await ipcRenderer.invoke('fetch', url),
   invoke: async (channel, ...args) => await ipcRenderer.invoke(channel, ...args),
+  // CrossMgr API
+  crossmgrStart: async () => await ipcRenderer.invoke('crossmgr:start'),
+  crossmgrStop: async () => await ipcRenderer.invoke('crossmgr:stop'),
+  crossmgrStatus: async () => await ipcRenderer.invoke('crossmgr:status'),
+  crossmgrSend: async (message) => await ipcRenderer.invoke('crossmgr:send', message),
+  
+  // CrossMgr Event Listeners
+  onCrossMgrConnected: (callback) => {
+    ipcRenderer.on('crossmgr:connected', callback);
+  },
+  onCrossMgrConnectionEstablished: (callback) => {
+    ipcRenderer.on('crossmgr:connection_established', callback);
+  },
+  onCrossMgrDisconnected: (callback) => {
+    ipcRenderer.on('crossmgr:disconnected', callback);  
+  },
+  onCrossMgrError: (callback) => {
+    ipcRenderer.on('crossmgr:error', callback);
+  },
+  onCrossMgrMessage: (callback) => {
+    ipcRenderer.on('crossmgr:message', callback);
+  },
+  removeCrossMgrListeners: () => {
+    ipcRenderer.removeAllListeners('crossmgr:connected');
+    ipcRenderer.removeAllListeners('crossmgr:connection_established');
+    ipcRenderer.removeAllListeners('crossmgr:disconnected');
+    ipcRenderer.removeAllListeners('crossmgr:error');
+    ipcRenderer.removeAllListeners('crossmgr:message');
+  }
 });
 
 contextBridge.exposeInMainWorld('windowControls', {
@@ -49,4 +78,17 @@ contextBridge.exposeInMainWorld('systemAPI', {
   selectFolder: () => ipcRenderer.invoke('system:select-folder'),
   selectFile: (filters) => ipcRenderer.invoke('system:select-file', filters),
   openFolder: (path) => ipcRenderer.invoke('system:open-folder', path),
+});
+
+// API pour les logs d'application - Version simplifiée
+contextBridge.exposeInMainWorld('appLogAPI', {
+  // Event listeners pour recevoir les logs directement du backend
+  onLogAdd: (callback) => {
+    ipcRenderer.on('app-log:add', (event, logData) => {
+      callback(event, logData);
+    });
+  },
+  removeLogListeners: () => {
+    ipcRenderer.removeAllListeners('app-log:add');
+  }
 });

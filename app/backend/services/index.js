@@ -2,14 +2,28 @@ const RaceService = require('./raceService');
 const ParticipantService = require('./participantService');
 const TimingService = require('./timingService');
 const SettingsService = require('./settingsService');
+const CrossMgrService = require('./crossmgrService');
+const AppLogService = require('./appLogService');
 
 /**
  * Factory pour créer les instances des services avec les modèles
  */
 class ServiceFactory {
-  constructor(models) {
+  constructor(models, mainWindow = null) {
     this.models = models;
+    this.mainWindow = mainWindow;
     this._services = {};
+  }
+
+  /**
+   * Définir la fenêtre principale
+   */
+  setMainWindow(mainWindow) {
+    this.mainWindow = mainWindow;
+    // Mettre à jour le service CrossMgr s'il existe déjà
+    if (this._services.crossmgr) {
+      this._services.crossmgr.setMainWindow(mainWindow);
+    }
   }
 
   /**
@@ -53,6 +67,26 @@ class ServiceFactory {
   }
 
   /**
+   * Obtenir une instance du service CrossMgr
+   */
+  getCrossMgrService() {
+    if (!this._services.crossmgr) {
+      this._services.crossmgr = new CrossMgrService(this.mainWindow);
+    }
+    return this._services.crossmgr;
+  }
+
+  /**
+   * Obtenir une instance du service de logs d'application
+   */
+  getAppLogService() {
+    if (!this._services.appLog) {
+      this._services.appLog = new AppLogService();
+    }
+    return this._services.appLog;
+  }
+
+  /**
    * Obtenir tous les services
    */
   getAllServices() {
@@ -60,7 +94,9 @@ class ServiceFactory {
       race: this.getRaceService(),
       participant: this.getParticipantService(),
       timing: this.getTimingService(),
-      settings: this.getSettingsService()
+      settings: this.getSettingsService(),
+      crossmgr: this.getCrossMgrService(),
+      appLog: this.getAppLogService()
     };
   }
 
@@ -77,5 +113,7 @@ module.exports = {
   ParticipantService,
   TimingService,
   SettingsService,
+  CrossMgrService,
+  AppLogService,
   ServiceFactory
 };

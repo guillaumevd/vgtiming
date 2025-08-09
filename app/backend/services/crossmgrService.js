@@ -1,0 +1,396 @@
+const net = require('net');
+const EventEmitter = require('events');
+const logger = require('../utils/logger');
+
+/**
+ * Service de connexion à CrossMgr
+ * Gère la communication TCP avec CrossMgr sur 127.0.0.1:53135
+ */
+class CrossMgrService extends EventEmitter {
+  constructor(mainWindow = null) {
+    super();
+    this.server = null;
+    this.client = null;
+    this.isConnected = false;
+    this.isListening = false;
+    this.host = '127.0.0.1';
+    this.port = 53135;
+    this.reconnectTimeout = null;
+    this.reconnectInterval = 5000; // 5 secondes
+    this.maxReconnectAttempts = 10;
+    this.reconnectAttempts = 0;
+    this.mainWindow = mainWindow; // Pour envoyer directement au frontend
+    // Pas de keepAliveTimer - connexion maintenue indéfiniment
+  }
+
+  /**
+   * Définir la fenêtre principale pour l'envoi de messages
+   */
+  setMainWindow(mainWindow) {
+    this.mainWindow = mainWindow;
+  }
+
+  /**
+   * Envoyer un log au journal d'activité via IPC
+   */
+  sendLogToApp(message, level = 'info', category = 'crossmgr', metadata = {}) {
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.webContents.send('app-log:add', {
+        message,
+        level,
+        category,
+        metadata,
+        timestamp: new Date().toISOString()
+      });
+    }
+  }
+
+  /**
+   * Démarrer l'écoute sur le port CrossMgr
+   */
+  async startListening() {
+    try {
+      if (this.isListening) {
+        logger.warn('CrossMgr: Serveur déjà en écoute', { port: this.port });
+        return true;
+      }
+
+      return new Promise((resolve, reject) => {
+        this.server = net.createServer((socket) => {
+          this.handleClientConnection(socket);
+        });
+
+        this.server.on('listening', () => {
+          this.isListening = true;
+          this.reconnectAttempts = 0;
+          logger.info(`CrossMgr: Serveur en écoute sur ${this.host}:${this.port}`);
+          this.emit('listening', { host: this.host, port: this.port });
+          resolve(true);
+        });
+
+        this.server.on('error', (error) => {
+          logger.error('CrossMgr: Erreur serveur', { error: error.message, code: error.code });
+          this.emit('error', error);
+          reject(error);
+        });
+
+        this.server.on('close', () => {
+          this.isListening = false;
+          logger.info('CrossMgr: Serveur fermé');
+          this.emit('listening_stopped');
+        });
+
+        // Démarrer l'écoute
+        this.server.listen(this.port, this.host);
+      });
+    } catch (error) {
+      logger.error('CrossMgr: Erreur lors du démarrage de l\'écoute', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Arrêter l'écoute
+   */
+  async stopListening() {
+    try {
+      if (this.reconnectTimeout) {
+        clearTimeout(this.reconnectTimeout);
+        this.reconnectTimeout = null;
+      }
+
+      if (this.client) {
+        this.client.destroy();
+        this.client = null;
+      }
+
+      if (this.server) {
+        return new Promise((resolve) => {
+          this.server.close(() => {
+            logger.info('CrossMgr: Écoute arrêtée');
+            resolve();
+          });
+        });
+      }
+    } catch (error) {
+      logger.error('CrossMgr: Erreur lors de l\'arrêt de l\'écoute', { error: error.message });
+      throw error;
+    }
+  }
+
+  /**
+   * Gérer une nouvelle connexion client (CrossMgr)
+   */
+  handleClientConnection(socket) {
+    logger.info('CrossMgr: Nouvelle connexion client', { 
+      remoteAddress: socket.remoteAddress,
+      remotePort: socket.remotePort 
+    });
+
+    this.client = socket;
+    // Ne pas marquer comme connecté ici - attendre le message GT
+    
+    // Envoyer au journal d'activité
+    this.sendLogToApp(
+      `📡 Client CrossMgr connecté depuis ${socket.remoteAddress}:${socket.remotePort}`, 
+      'info',
+      'crossmgr',
+      { type: 'connection', address: socket.remoteAddress, port: socket.remotePort }
+    );
+    
+    this.emit('connected', {
+      address: socket.remoteAddress,
+      port: socket.remotePort
+    });
+
+    // Buffer pour accumuler les données
+    let buffer = '';
+
+    // Pas de timeout automatique - garder la connexion ouverte indéfiniment
+    // La déconnexion sera détectée uniquement par les événements 'end' et 'error'
+
+    socket.on('data', (data) => {
+      // Traiter les données reçues
+      buffer += data.toString();
+      buffer = this.processBuffer(buffer, socket);
+    });
+
+    socket.on('end', () => {
+      logger.info('CrossMgr: Connexion fermée par le client');
+      this.handleDisconnection('client_close');
+    });
+
+    socket.on('error', (error) => {
+      logger.error('CrossMgr: Erreur socket client', { error: error.message });
+      this.handleDisconnection('error', error.message);
+    });
+
+    socket.on('close', (hadError) => {
+      logger.info('CrossMgr: Socket client fermé', { hadError });
+      this.handleDisconnection(hadError ? 'error_close' : 'normal_close');
+    });
+  }
+
+  /**
+   * Traiter les données reçues dans le buffer
+   */
+  processBuffer(buffer, socket) {
+    const lines = buffer.split('\r');
+    
+    // Garder la dernière ligne incomplète dans le buffer
+    const remainingBuffer = lines.pop() || '';
+
+    lines.forEach(line => {
+      if (line.trim()) {
+        this.processMessage(line.trim(), socket);
+      }
+    });
+
+    return remainingBuffer;
+  }
+
+  /**
+   * Traiter un message reçu de CrossMgr
+   */
+  processMessage(message, socket) {
+    logger.debug('CrossMgr: Message reçu', { message });
+
+    try {
+      // Protocole CrossMgr : N0000... -> répondre GT\r (handshake initial)
+      if (message.startsWith('N0000')) {
+        logger.info('CrossMgr: Handshake initial reçu, envoi de GT');
+        socket.write('GT\r');
+        this.sendLogToApp(`🤝 ${message}`, 'info', 'crossmgr', { type: 'handshake' });
+        this.emit('handshake_received', { message });
+        this.emit('message_sent', { message: 'GT', originalMessage: message, type: 'handshake' });
+        return;
+      }
+
+      // Messages GT (vraie connexion établie) - Détection prioritaire
+      if (message.startsWith('GT') && message.includes('date=')) {
+        logger.info('CrossMgr: Message GT reçu - connexion vraiment établie');
+        socket.write('S0000\r');
+        // C'est maintenant que la connexion est vraiment établie
+        if (!this.isConnected) {
+          this.isConnected = true;
+          this.sendLogToApp(`✅ Connexion CrossMgr établie (GT confirmé)`, 'success');
+          logger.debug('CrossMgr service: true connection established via GT message');
+          this.emit('connection_established', { message });
+        }
+        this.sendLogToApp(`⏱️ ${message}`, 'info', 'crossmgr', { type: 'timing' });
+        this.emit('timing_message', { message });
+        this.emit('message_sent', { message: 'S0000', originalMessage: message, type: 'timing' });
+        return;
+      }
+
+      // Autres messages de timing CrossMgr (après connexion établie)
+      if (message.includes('date=') || message.includes('time=')) {
+        logger.info('CrossMgr: Message de timing reçu, envoi de S0000');
+        socket.write('S0000\r');
+        this.sendLogToApp(`⏱️ ${message}`, 'info', 'crossmgr', { type: 'timing' });
+        this.emit('timing_message', { message });
+        this.emit('message_sent', { message: 'S0000', originalMessage: message, type: 'timing' });
+        return;
+      }
+
+      // Messages JSON (données de timing)
+      if (message.startsWith('{') && message.endsWith('}')) {
+        try {
+          const data = JSON.parse(message);
+          logger.info('CrossMgr: Données JSON reçues', { 
+            type: data.type || 'unknown',
+            bib: data.bib || 'unknown' 
+          });
+          socket.write('S0000\r'); // Confirmer réception
+          this.sendLogToApp(`📊 Données CrossMgr - Type: ${data.type || 'unknown'}, Dossard: ${data.bib || 'N/A'}`, 'info');
+          this.emit('timing_data', data);
+          this.emit('message_sent', { message: 'S0000', originalData: data, type: 'data' });
+        } catch (parseError) {
+          logger.warn('CrossMgr: Erreur parsing JSON', { 
+            message, 
+            error: parseError.message 
+          });
+        }
+        return;
+      }
+
+      // Autres messages - ne pas logger en tant qu'erreur pour éviter le spam
+      logger.debug('CrossMgr: Message non traité', { message });
+
+    } catch (error) {
+      logger.error('CrossMgr: Erreur traitement message', { 
+        message, 
+        error: error.message 
+      });
+    }
+  }
+
+  /**
+   * Gérer la déconnexion
+   */
+  handleDisconnection(reason = 'unknown', errorMessage = null) {
+    if (this.isConnected || this.client) {
+      // Marquer comme déconnecté
+      this.isConnected = false;
+      this.client = null;
+      
+      const disconnectData = {
+        reason,
+        errorMessage,
+        timestamp: new Date().toISOString()
+      };
+      
+      logger.info('CrossMgr: Client déconnecté', disconnectData);
+      
+      // Envoyer le log au journal d'activité avec un message approprié
+      let logMessage = '';
+      let logLevel = 'warning';
+      switch(reason) {
+        case 'client_close':
+          logMessage = '📴 CrossMgr fermé normalement';
+          logLevel = 'info';
+          break;
+        case 'error':
+        case 'error_close':
+          logMessage = `❌ CrossMgr déconnecté suite à une erreur: ${errorMessage}`;
+          logLevel = 'error';
+          break;
+        case 'timeout':
+          logMessage = '⏰ CrossMgr déconnecté (timeout - application probablement fermée)';
+          logLevel = 'warning';
+          break;
+        case 'normal_close':
+          logMessage = '📴 CrossMgr déconnecté normalement';
+          logLevel = 'info';
+          break;
+        default:
+          logMessage = '📴 CrossMgr déconnecté';
+          logLevel = 'warning';
+      }
+      
+      this.sendLogToApp(logMessage, logLevel, 'crossmgr', { 
+        type: 'disconnection', 
+        reason, 
+        errorMessage 
+      });
+      
+      // Émettre l'événement de déconnexion
+      this.emit('disconnected', disconnectData);
+      
+      // Programmer une tentative de reconnexion si le serveur est encore en écoute
+      if (this.isListening && this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.scheduleReconnect();
+      }
+    }
+  }
+
+  /**
+   * Programmer une tentative de reconnexion
+   */
+  scheduleReconnect() {
+    if (this.reconnectTimeout) {
+      clearTimeout(this.reconnectTimeout);
+    }
+
+    this.reconnectAttempts++;
+    
+    this.reconnectTimeout = setTimeout(() => {
+      logger.info(`CrossMgr: Tentative de reconnexion ${this.reconnectAttempts}/${this.maxReconnectAttempts}`);
+      this.emit('reconnecting', { 
+        attempt: this.reconnectAttempts, 
+        maxAttempts: this.maxReconnectAttempts 
+      });
+    }, this.reconnectInterval);
+  }
+
+  /**
+   * Obtenir le statut de la connexion
+   */
+  getStatus() {
+    return {
+      isListening: this.isListening,
+      isConnected: this.isConnected,
+      host: this.host,
+      port: this.port,
+      reconnectAttempts: this.reconnectAttempts,
+      maxReconnectAttempts: this.maxReconnectAttempts
+    };
+  }
+
+  /**
+   * Envoyer un message à CrossMgr
+   */
+  sendMessage(message) {
+    if (this.client && this.isConnected) {
+      try {
+        this.client.write(message + '\r');
+        logger.debug('CrossMgr: Message envoyé', { message });
+        return true;
+      } catch (error) {
+        logger.error('CrossMgr: Erreur envoi message', { 
+          message, 
+          error: error.message 
+        });
+        return false;
+      }
+    } else {
+      logger.warn('CrossMgr: Tentative d\'envoi sans connexion', { message });
+      return false;
+    }
+  }
+
+  /**
+   * Nettoyer les ressources
+   */
+  async cleanup() {
+    try {
+      await this.stopListening();
+      this.removeAllListeners();
+      logger.info('CrossMgr: Nettoyage terminé');
+    } catch (error) {
+      logger.error('CrossMgr: Erreur lors du nettoyage', { error: error.message });
+    }
+  }
+}
+
+module.exports = CrossMgrService;
