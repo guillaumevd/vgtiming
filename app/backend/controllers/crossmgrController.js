@@ -85,7 +85,7 @@ class CrossMgrController {
   async startConnection() {
     try {
       const result = await this.crossMgrService.startListening();
-      logger.info('CrossMgr: Connexion démarrée avec succès');
+      // Log supprimé - géré par le service
       return { success: true, data: result };
     } catch (error) {
       logger.error('CrossMgr: Erreur démarrage connexion', { error: error.message });
@@ -99,7 +99,7 @@ class CrossMgrController {
   async stopConnection() {
     try {
       await this.crossMgrService.stopListening();
-      logger.info('CrossMgr: Connexion arrêtée avec succès');
+      // Log supprimé - géré par le service
       return { success: true };
     } catch (error) {
       logger.error('CrossMgr: Erreur arrêt connexion', { error: error.message });

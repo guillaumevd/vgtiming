@@ -39,14 +39,9 @@ const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
 
   // Surveiller les changements de statut pour loguer automatiquement
   useEffect(() => {
-    if (connectionStatus === CONNECTION_STATUS.CONNECTED) {
-      onLog('Connexion à CrossMgr établie automatiquement après handshake', 'success');
-    } else if (connectionStatus === CONNECTION_STATUS.DISCONNECTED && !isLoading) {
-      onLog('Connexion à CrossMgr fermée', 'warning');
-    } else if (connectionStatus === CONNECTION_STATUS.ERROR && lastError) {
-      onLog(`Erreur CrossMgr: ${lastError}`, 'error');
-    }
-  }, [connectionStatus, lastError, isLoading]); // Enlever onLog des dépendances
+    // Messages supprimés - le backend gère déjà les logs via le service CrossMgr
+    // Évite les doublons dans le journal d'activité
+  }, [connectionStatus, lastError, isLoading]);
 
   // Écouter les messages de communication CrossMgr
   useEffect(() => {
@@ -135,11 +130,11 @@ const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
   };
 
   const handleDisconnect = async () => {
-    onLog('Déconnexion de CrossMgr', 'info');
+    // Messages supprimés - le backend gère déjà les logs via le service CrossMgr
     
     try {
       await disconnect();
-      onLog('Déconnexion de CrossMgr réussie', 'success');
+      // Log supprimé - géré par le backend
     } catch (error) {
       onLog(`Erreur lors de la déconnexion: ${error.message}`, 'error');
     }

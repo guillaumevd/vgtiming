@@ -64,6 +64,8 @@ class CrossMgrService extends EventEmitter {
           this.isListening = true;
           this.reconnectAttempts = 0;
           logger.info(`CrossMgr: Serveur en écoute sur ${this.host}:${this.port}`);
+          // Message unique de démarrage
+          this.sendLogToApp(`🔄 CrossMgr en écoute sur ${this.port}`, 'info', 'crossmgr', { type: 'server_start', port: this.port });
           this.emit('listening', { host: this.host, port: this.port });
           resolve(true);
         });
@@ -77,6 +79,7 @@ class CrossMgrService extends EventEmitter {
         this.server.on('close', () => {
           this.isListening = false;
           logger.info('CrossMgr: Serveur fermé');
+          // Message géré par stopListening() pour éviter les doublons
           this.emit('listening_stopped');
         });
 
@@ -108,6 +111,8 @@ class CrossMgrService extends EventEmitter {
         return new Promise((resolve) => {
           this.server.close(() => {
             logger.info('CrossMgr: Écoute arrêtée');
+            // Un seul message consolidé pour l'arrêt
+            this.sendLogToApp('🔌 CrossMgr arrêté', 'info', 'crossmgr', { type: 'server_stop' });
             resolve();
           });
         });
@@ -268,58 +273,36 @@ class CrossMgrService extends EventEmitter {
    * Gérer la déconnexion
    */
   handleDisconnection(reason = 'unknown', errorMessage = null) {
-    if (this.isConnected || this.client) {
-      // Marquer comme déconnecté
-      this.isConnected = false;
-      this.client = null;
-      
-      const disconnectData = {
-        reason,
-        errorMessage,
-        timestamp: new Date().toISOString()
-      };
-      
-      logger.info('CrossMgr: Client déconnecté', disconnectData);
-      
-      // Envoyer le log au journal d'activité avec un message approprié
-      let logMessage = '';
-      let logLevel = 'warning';
-      switch(reason) {
-        case 'client_close':
-          logMessage = '📴 CrossMgr fermé normalement';
-          logLevel = 'info';
-          break;
-        case 'error':
-        case 'error_close':
-          logMessage = `❌ CrossMgr déconnecté suite à une erreur: ${errorMessage}`;
-          logLevel = 'error';
-          break;
-        case 'timeout':
-          logMessage = '⏰ CrossMgr déconnecté (timeout - application probablement fermée)';
-          logLevel = 'warning';
-          break;
-        case 'normal_close':
-          logMessage = '📴 CrossMgr déconnecté normalement';
-          logLevel = 'info';
-          break;
-        default:
-          logMessage = '📴 CrossMgr déconnecté';
-          logLevel = 'warning';
-      }
-      
-      this.sendLogToApp(logMessage, logLevel, 'crossmgr', { 
-        type: 'disconnection', 
-        reason, 
-        errorMessage 
-      });
-      
-      // Émettre l'événement de déconnexion
-      this.emit('disconnected', disconnectData);
-      
-      // Programmer une tentative de reconnexion si le serveur est encore en écoute
-      if (this.isListening && this.reconnectAttempts < this.maxReconnectAttempts) {
-        this.scheduleReconnect();
-      }
+    // Éviter les messages multiples si déjà déconnecté
+    if (!this.isConnected && !this.client) {
+      return;
+    }
+    
+    // Marquer comme déconnecté
+    this.isConnected = false;
+    this.client = null;
+    
+    const disconnectData = {
+      reason,
+      errorMessage,
+      timestamp: new Date().toISOString()
+    };
+    
+    logger.info('CrossMgr: Client déconnecté', disconnectData);
+    
+    // Un seul message simple pour toutes les déconnexions
+    this.sendLogToApp('📴 CrossMgr déconnecté', 'warning', 'crossmgr', { 
+      type: 'disconnection', 
+      reason, 
+      errorMessage 
+    });
+    
+    // Émettre l'événement de déconnexion
+    this.emit('disconnected', disconnectData);
+    
+    // Programmer une tentative de reconnexion si le serveur est encore en écoute
+    if (this.isListening && this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.scheduleReconnect();
     }
   }
 
