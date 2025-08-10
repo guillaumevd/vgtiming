@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ROUTES } from '../../constants';
 import RaceList from './components/RaceList';
 import AddRace from './components/AddRace';
 import EditRace from './components/RaceEdit';
@@ -8,6 +10,7 @@ import RaceDashboard from './components/RaceDashboard';
 const Race = () => {
   const [mode, setMode] = useState('list'); // 'list', 'add', 'edit', 'participants', 'dashboard'
   const [selectedRace, setSelectedRace] = useState(null);
+  const navigate = useNavigate();
 
   const onRaceSelected = (race) => {
     setSelectedRace(race);
@@ -27,6 +30,13 @@ const Race = () => {
   const onViewDashboard = (race) => {
     setSelectedRace(race);
     setMode('dashboard');
+  };
+
+  const onGoToTiming = (race) => {
+    // TODO: Passer l'information de la course sélectionnée à la page timing
+    // Pour l'instant, on navigue simplement vers la page timing
+    console.log('Navigation vers chronométrage pour la course:', race.name);
+    navigate(ROUTES.TIMING);
   };
 
   const onRaceAdded = () => {
@@ -97,6 +107,8 @@ const Race = () => {
               setSelectedRace(updatedRace);
               // Optionellement, on peut rester sur le dashboard après mise à jour
             }}
+            onManageParticipants={onManageParticipants}
+            onGoToTiming={onGoToTiming}
           />
         );
       default:
