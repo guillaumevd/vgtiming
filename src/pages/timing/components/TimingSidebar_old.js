@@ -13,6 +13,19 @@ const TimingSidebar = ({
   onResetRace,
   onFinishRace
 }) => {
+  // Suppression du state pour les sections pliables
+  // const [expandedSections, setExpandedSections] = useState({
+  //   status: true,
+  //   race: true,
+  //   actions: true
+  // });
+
+  // const toggleSection = (section) => {
+  //   setExpandedSections(prev => ({
+  //     ...prev,
+  //     [section]: !prev[section]
+  //   }));
+  // };
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -80,7 +93,6 @@ const TimingSidebar = ({
                   <div className="status-title">Course</div>
                   <div className="status-subtitle">État du chronométrage</div>
                 </div>
-              </div>
               <div className="status-card-body">
                 <div className={`status-badge status-badge-${raceStatus}`}>
                   {raceStatus === 'running' && 'En cours'}
@@ -98,9 +110,7 @@ const TimingSidebar = ({
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Section Sélection de Course */}
+      </div>      {/* Section Sélection de Course */}
       <div className="control-section">
         <div className="section-title">
           <h4>🏁 Sélection de Course</h4>
