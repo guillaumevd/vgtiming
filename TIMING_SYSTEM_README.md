@@ -102,10 +102,11 @@ public/assets/js/vgtiming-api.js  # ✅ API JavaScript pour communication IPC
 - [ ] Mettre à jour compteurs temps réel
 
 ### Phase 2 : Traitement CrossMgr ⏱️ 3h
-- [ ] Parser messages CrossMgr (format GT avec date/time)
-- [ ] Associer messages aux participants par bibNumber
+- [ ] Envoyer commande GT (Get Time) au démarrage course
+- [ ] Parser messages CrossMgr (format passage participants)
+- [ ] Associer messages aux participants par EPC tag
 - [ ] Enregistrer passages en base (`timing_data.passings`)
-- [ ] Calculer temps intermédiaires et totaux
+- [ ] Calculer temps intermédiaires et totaux depuis GT départ
 
 ### Phase 3 : Interface utilisateur ⏱️ 1h
 - [ ] Animation clignotante bouton "Lancer" 
@@ -165,13 +166,43 @@ public/assets/js/vgtiming-api.js  # ✅ API JavaScript pour communication IPC
 ```
 1. VG-Timing → Démarrer l'écoute CrossMgr
 2. CrossMgr → Configurer RFID + Start RFID  
-3. VG-Timing → Créer course + ajouter participants
+3. VG-Timing → Créer course + ajouter participants (avec EPC tags)
 4. VG-Timing → Page Timing → Sélectionner course
-5. VG-Timing → Bouton "Lancer" (quand tout OK)
+5. VG-Timing → Bouton "Lancer" → Envoie GT (Get Time) à CrossMgr
 6. CrossMgr → Simuler/recevoir passages RFID
-7. VG-Timing → Voir résultats temps réel
+7. VG-Timing → Voir résultats temps réel (calculés depuis GT)
 8. Course termine → Auto-redirect dashboard
 ```
+
+## 📡 Protocole CrossMgr
+
+### Commandes VG-Timing → CrossMgr
+Au démarrage d'une course, VG-Timing envoie :
+```
+GT
+```
+Cette commande permet d'obtenir le temps de référence pour calculer les temps de passage.
+
+### Messages CrossMgr → VG-Timing
+Quand un participant passe devant le lecteur RFID, CrossMgr envoie :
+```
+DA3691 01:24:54.543102 10  00000      C7 date=20250811
+```
+
+**Format détaillé :**
+- `DA3691` : **EPC Tag du participant** (identifiant RFID unique)
+- `01:24:54.543102` : **Heure exacte du passage** (HH:MM:SS.microsec)
+- `10 00000 C7` : Données techniques (non utilisées par VG-Timing)
+- `date=20250811` : Date du passage (YYYYMMDD)
+
+### Calcul des temps
+1. **Temps de départ** : Heure du GT envoyé au lancement
+2. **Temps de passage** : Heure reçue dans message CrossMgr
+3. **Temps écoulé** : `Passage - GT_départ`
+4. **Temps au tour** : `Passage_actuel - Passage_précédent`
+
+### Association participant
+Les participants doivent avoir leur **EPC tag** configuré dans VG-Timing pour être associés aux passages CrossMgr.
 
 ## 🗺️ Plan de développement {#plan-de-développement}
 
@@ -184,10 +215,11 @@ public/assets/js/vgtiming-api.js  # ✅ API JavaScript pour communication IPC
 
 ### Sprint 2 : CrossMgr (4h)  
 **Objectif** : Traiter données CrossMgr en temps réel
-- Améliorer parsing messages GT dans `crossmgrService.js`
-- Associer passages aux participants dans `timingService.js` 
+- Envoyer commande GT au démarrage course dans `crossmgrService.js`
+- Parser messages passages (EPC + heure) dans `crossmgrService.js`
+- Associer passages aux participants par EPC tag dans `timingService.js`
 - Sauvegarder passages dans `timing_data.passings`
-- Calculer temps et positions
+- Calculer temps écoulés depuis GT départ et temps au tour
 
 ### Sprint 3 : Finalisation (2h)
 **Objectif** : Finir course automatiquement
@@ -206,10 +238,11 @@ public/assets/js/vgtiming-api.js  # ✅ API JavaScript pour communication IPC
 
 ### Test manuel basique
 1. **Setup** : VG-Timing + CrossMgr connectés
-2. **Course** : Créer course test avec 3 participants
-3. **Lancer** : Bouton clignote → clic → chronométrage démarre
-4. **Données** : Simuler passages CrossMgr → voir temps réel
-5. **Fin** : Course termine → redirect dashboard → voir résultats
+2. **Course** : Créer course test avec 3 participants (avec EPC tags)
+3. **Lancer** : Bouton clignote → clic → envoie GT → chronométrage démarre
+4. **Données** : Simuler passages CrossMgr → parser EPC+heure → voir temps réel
+5. **Calculs** : Vérifier temps écoulés depuis GT et temps au tour
+6. **Fin** : Course termine → redirect dashboard → voir résultats
 
 ### Test de charge
 - 50 participants simultanés
@@ -225,7 +258,10 @@ public/assets/js/vgtiming-api.js  # ✅ API JavaScript pour communication IPC
 
 ### Fonctionnalités
 - [ ] Bouton "Lancer" fonctionne et clignote
-- [ ] Données CrossMgr traitées temps réel
+- [ ] Commande GT envoyée au démarrage
+- [ ] Messages CrossMgr parsés (EPC + heure)
+- [ ] Association participants par EPC tag
+- [ ] Calculs temps depuis GT (écoulé + au tour)
 - [ ] Positions calculées automatiquement  
 - [ ] Fin de course détectée (durée/tours)
 - [ ] Navigation automatique dashboard
@@ -240,7 +276,10 @@ public/assets/js/vgtiming-api.js  # ✅ API JavaScript pour communication IPC
 
 ### Technique  
 - [ ] APIs timing toutes connectées
-- [ ] Messages CrossMgr parsés correctement
+- [ ] Commande GT envoyée au démarrage course
+- [ ] Messages CrossMgr parsés (format EPC + heure)
+- [ ] Association participants par EPC tag
+- [ ] Calculs temps précis (écoulé, au tour, positions)
 - [ ] Base données timing_data utilisée
 - [ ] Gestion erreurs et déconnexions
 - [ ] Performance acceptable (>50 participants)
