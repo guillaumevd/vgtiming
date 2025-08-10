@@ -37,7 +37,29 @@ const RaceList = ({ onSelectRace, onManageParticipants, onViewDashboard, onSetMo
     const loadRaces = async () => {
       const result = await window.VGTiming.getAllRaces();
       if (result.success) {
-        setRaces(result.data || []);
+        const racesData = result.data || [];
+        
+        // Pour chaque course, récupérer le nombre de participants
+        const racesWithParticipants = await Promise.all(
+          racesData.map(async (race) => {
+            try {
+              // Vérifier que l'API est prête avant d'appeler
+              if (window.VGTiming && window.VGTiming.isReady) {
+                const participantsResult = await window.VGTiming.getParticipantsByRace(race.id);
+                const participantCount = participantsResult.success ? (participantsResult.data || []).length : 0;
+                return { ...race, participantCount };
+              } else {
+                // Si l'API n'est pas prête, retourner 0 participants
+                return { ...race, participantCount: 0 };
+              }
+            } catch (error) {
+              console.error(`Erreur lors du chargement des participants pour la course ${race.id}:`, error);
+              return { ...race, participantCount: 0 };
+            }
+          })
+        );
+        
+        setRaces(racesWithParticipants);
       } else {
         throw new Error(result.error || 'Erreur lors du chargement des courses');
       }
@@ -131,7 +153,7 @@ const RaceList = ({ onSelectRace, onManageParticipants, onViewDashboard, onSetMo
                   </div>
                   <div className="info-item">
                     <i className="fas fa-clock"></i>
-                    <span>{race.startTime || 'Heure non définie'}</span>
+                    <span>{race.time || 'Heure non définie'}</span>
                   </div>
                   <div className="info-item">
                     <i className="fas fa-map-marker-alt"></i>
