@@ -58,6 +58,90 @@
   transform: translateY(0);
 }
 
+/* Unified button style matching settings page */
+.race-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 8px 16px;
+  font-weight: 600;
+  border: 2px solid;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+  text-decoration: none;
+  position: relative;
+  overflow: hidden;
+  background: #1a202c;
+}
+
+.race-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.race-button:active {
+  transform: translateY(0);
+}
+
+.race-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.race-button.primary {
+  border-color: #63b3ed;
+  color: #63b3ed;
+}
+
+.race-button.primary:hover:not(:disabled) {
+  background: #63b3ed;
+  color: #1a202c;
+}
+
+.race-button.secondary {
+  border-color: #4a5568;
+  color: #e2e8f0;
+}
+
+.race-button.secondary:hover:not(:disabled) {
+  background: #4a5568;
+  color: #ffffff;
+}
+
+.race-button.success {
+  border-color: #48bb78;
+  color: #48bb78;
+}
+
+.race-button.success:hover:not(:disabled) {
+  background: #48bb78;
+  color: #1a202c;
+}
+
+.race-button.danger {
+  border-color: #fc8181;
+  color: #fc8181;
+}
+
+.race-button.danger:hover:not(:disabled) {
+  background: #fc8181;
+  color: #1a202c;
+}
+
+.race-button.warning {
+  border-color: #ed8936;
+  color: #ed8936;
+}
+
+.race-button.warning:hover:not(:disabled) {
+  background: #ed8936;
+  color: #1a202c;
+}
+
 /* Button variants */
 .btn-primary-unified {
   background: #1a202c;
@@ -89,6 +173,17 @@
 
 .btn-success-unified:hover {
   background: #48bb78;
+  color: #1a202c;
+}
+
+.btn-info-unified {
+  background: #1a202c;
+  border-color: #63b3ed;
+  color: #63b3ed;
+}
+
+.btn-info-unified:hover {
+  background: #63b3ed;
   color: #1a202c;
 }
 
@@ -149,12 +244,24 @@
 }
 
 .race-card {
-  background: transparent;
+  background: #1a202c;
   border-radius: 12px;
-  transition: all 0.3s ease;
-  overflow: hidden;
-  border: 2px solid #4a5568;
   padding: 1.5rem;
+  border: 2px solid #4a5568;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.race-card.clickable {
+  cursor: pointer;
+}
+
+.race-card.clickable:hover {
+  border-color: #63b3ed;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
 }
 
 .race-card:hover {
@@ -164,12 +271,24 @@
 }
 
 .race-card-header {
-  padding: 0 0 1rem 0;
-  border-bottom: 1px solid #4a5568;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
-  background: transparent;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.race-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+}
+
+.race-header-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
 }
 
 .race-name {
@@ -215,8 +334,23 @@
   border-color: #e53e3e;
 }
 
+.dashboard-hint {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #63b3ed;
+  font-size: 0.75rem;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.race-card.clickable:hover .dashboard-hint {
+  opacity: 1;
+}
+
 .race-details {
   padding: 1rem 0;
+  border-top: 1px solid #4a5568;
   background: transparent;
 }
 
@@ -232,6 +366,9 @@
   gap: 0.75rem;
   color: #a0aec0;
   font-size: 0.9rem;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .info-item i {

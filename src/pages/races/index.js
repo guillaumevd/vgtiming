@@ -3,9 +3,10 @@ import RaceList from './components/RaceList';
 import AddRace from './components/AddRace';
 import EditRace from './components/RaceEdit';
 import Participants from './components/Participants';
+import RaceDashboard from './components/RaceDashboard';
 
 const Race = () => {
-  const [mode, setMode] = useState('list'); // 'list', 'add', 'edit', 'participants'
+  const [mode, setMode] = useState('list'); // 'list', 'add', 'edit', 'participants', 'dashboard'
   const [selectedRace, setSelectedRace] = useState(null);
 
   const onRaceSelected = (race) => {
@@ -16,6 +17,16 @@ const Race = () => {
   const onManageParticipants = (race) => {
     setSelectedRace(race);
     setMode('participants');
+  };
+
+  const onViewResults = (race) => {
+    setSelectedRace(race);
+    setMode('results');
+  };
+
+  const onViewDashboard = (race) => {
+    setSelectedRace(race);
+    setMode('dashboard');
   };
 
   const onRaceAdded = () => {
@@ -54,6 +65,7 @@ const Race = () => {
           <RaceList 
             onSelectRace={onRaceSelected} 
             onManageParticipants={onManageParticipants}
+            onViewDashboard={onViewDashboard}
             onSetMode={() => setMode('add')}
           />
         );
@@ -74,6 +86,17 @@ const Race = () => {
             race={selectedRace}
             onBack={onBackToList}
             onSave={onParticipantsSaved}
+          />
+        );
+      case 'dashboard':
+        return (
+          <RaceDashboard
+            race={selectedRace}
+            onBack={onBackToList}
+            onRaceUpdated={(updatedRace) => {
+              setSelectedRace(updatedRace);
+              // Optionellement, on peut rester sur le dashboard après mise à jour
+            }}
           />
         );
       default:

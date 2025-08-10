@@ -135,7 +135,7 @@ const EditRace = ({ race, onRaceUpdated, onRaceDeleted, onRaceCanceled }) => {
         <h1>Modifier la Course</h1>
         <button 
           type="button" 
-          className="btn-unified btn-outline-secondary-unified"
+          className="race-button secondary"
           onClick={onRaceCanceled}
         >
           <i className="fas fa-times"></i>
@@ -294,7 +294,7 @@ const EditRace = ({ race, onRaceUpdated, onRaceDeleted, onRaceCanceled }) => {
             <div className="form-actions">
               <button 
                 type="button" 
-                className="btn-unified btn-danger-unified"
+                className="race-button danger"
                 onClick={handleDelete}
                 disabled={isSubmitting || isDeleting}
               >
@@ -314,7 +314,7 @@ const EditRace = ({ race, onRaceUpdated, onRaceDeleted, onRaceCanceled }) => {
               <div className="d-flex gap-2">
                 <button 
                   type="button" 
-                  className="btn-unified btn-secondary-unified"
+                  className="race-button secondary"
                   onClick={onRaceCanceled}
                   disabled={isSubmitting || isDeleting}
                 >
@@ -322,7 +322,7 @@ const EditRace = ({ race, onRaceUpdated, onRaceDeleted, onRaceCanceled }) => {
                 </button>
                 <button 
                   type="submit" 
-                  className="btn-unified btn-primary-unified"
+                  className="race-button primary"
                   disabled={isSubmitting || isDeleting}
                 >
                   {isSubmitting ? (

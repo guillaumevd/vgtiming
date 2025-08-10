@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import './css/RaceList.css';
 
-const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
+const RaceList = ({ onSelectRace, onManageParticipants, onViewDashboard, onSetMode}) => {
   const [races, setRaces] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -56,6 +56,13 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
     onManageParticipants(race);
   };
 
+  const handleCardClick = (race, e) => {
+    // Si le clic n'est pas sur un bouton, aller au tableau de bord
+    if (!e.target.closest('.race-actions button')) {
+      onViewDashboard(race);
+    }
+  };
+
   const handleAddClick = () => {
     onSetMode('add');
   };
@@ -64,7 +71,7 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
     <div className="race-list-container">
       <div className="race-list-header">
         <h1>Gestion des Courses</h1>
-        <button className="btn-unified btn-primary-unified add-race-btn" onClick={handleAddClick}>
+        <button className="race-button primary add-race-btn" onClick={handleAddClick}>
           <i className="fas fa-plus"></i>
           Nouvelle Course
         </button>
@@ -96,7 +103,7 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
           </div>
           <h3>Aucune course trouvée</h3>
           <p>Commencez par créer votre première course</p>
-          <button className="btn-unified btn-primary-unified" onClick={handleAddClick}>
+          <button className="race-button primary" onClick={handleAddClick}>
             <i className="fas fa-plus"></i>
             Créer une course
           </button>
@@ -104,7 +111,11 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
       ) : (
         <div className="races-grid">
           {races.map((race) => (
-            <div key={race.id} className="race-card">
+            <div 
+              key={race.id} 
+              className="race-card clickable"
+              onClick={(e) => handleCardClick(race, e)}
+            >
               <div className="race-card-header">
                 <h3 className="race-name">{race.name}</h3>
                 <span className={`race-status ${race.status ? race.status.toLowerCase() : 'draft'}`}>
@@ -135,7 +146,7 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
               
               <div className="race-actions">
                 <button 
-                  className="btn-unified btn-secondary-unified"
+                  className="race-button secondary"
                   onClick={(e) => handleRaceClick(race, e)}
                   title="Modifier la course"
                 >
@@ -143,7 +154,7 @@ const RaceList = ({ onSelectRace, onManageParticipants, onSetMode}) => {
                   Modifier
                 </button>
                 <button 
-                  className="btn-unified btn-success-unified"
+                  className="race-button success"
                   onClick={(e) => handleParticipantsClick(race, e)}
                   title="Gérer les participants"
                 >

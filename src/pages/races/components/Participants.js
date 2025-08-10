@@ -295,19 +295,19 @@ const Participants = ({ race, onBack, onSave }) => {
       <div className="form-actions">
         {isEditing ? (
           <>
-            <button type="button" className="btn-unified btn-secondary-unified" onClick={() => setEditingParticipant(null)}>
+            <button type="button" className="race-button secondary" onClick={() => setEditingParticipant(null)}>
               Annuler
             </button>
-            <button type="button" className="btn-unified btn-primary-unified" onClick={handleSaveEdit}>
+            <button type="button" className="race-button primary" onClick={handleSaveEdit}>
               Sauvegarder
             </button>
           </>
         ) : (
           <>
-            <button type="button" className="btn-unified btn-secondary-unified" onClick={() => setShowAddForm(false)}>
+            <button type="button" className="race-button secondary" onClick={() => setShowAddForm(false)}>
               Annuler
             </button>
-            <button type="button" className="btn-unified btn-primary-unified" onClick={handleAddParticipant}>
+            <button type="button" className="race-button primary" onClick={handleAddParticipant}>
               Ajouter
             </button>
           </>
@@ -365,7 +365,7 @@ const Participants = ({ race, onBack, onSave }) => {
               <h4>Liste des participants</h4>
               {!showAddForm && !editingParticipant && (
                 <button 
-                  className="btn-unified btn-primary-unified"
+                  className="race-button primary"
                   onClick={() => setShowAddForm(true)}
                 >
                   + Ajouter un participant
@@ -378,7 +378,7 @@ const Participants = ({ race, onBack, onSave }) => {
                 <p>Aucun participant ajouté pour cette course.</p>
                 {!showAddForm && (
                   <button 
-                    className="btn-unified btn-primary-unified"
+                    className="race-button primary"
                     onClick={() => setShowAddForm(true)}
                   >
                     Ajouter le premier participant
@@ -414,21 +414,21 @@ const Participants = ({ race, onBack, onSave }) => {
                         </td>
                         <td className="actions">
                           <button 
-                            className="btn-unified-sm btn-primary-unified-sm"
+                            className="race-button primary btn-sm"
                             onClick={() => handleEditParticipant(participant)}
                             disabled={showAddForm || editingParticipant}
                           >
                             Modifier
                           </button>
                           <button 
-                            className={`btn-unified-sm ${participant.isActive ? 'btn-warning-unified-sm' : 'btn-success-unified-sm'}`}
+                            className={`race-button ${participant.isActive ? 'warning' : 'success'} btn-sm`}
                             onClick={() => handleToggleActive(participant.id)}
                             disabled={showAddForm || editingParticipant}
                           >
                             {participant.isActive ? 'Désactiver' : 'Activer'}
                           </button>
                           <button 
-                            className="btn-unified-sm btn-danger-unified-sm"
+                            className="race-button danger btn-sm"
                             onClick={() => handleDeleteParticipant(participant.id)}
                             disabled={showAddForm || editingParticipant}
                           >
@@ -446,11 +446,11 @@ const Participants = ({ race, onBack, onSave }) => {
         
         <div className="card-footer">
           <div className="footer-actions">
-            <button className="btn-unified btn-secondary-unified" onClick={onBack}>
+            <button className="race-button secondary" onClick={onBack}>
               ← Retour aux courses
             </button>
             <button 
-              className="btn-unified btn-success-unified"
+              className="race-button success"
               onClick={handleSaveAndBack}
               disabled={showAddForm || editingParticipant}
             >

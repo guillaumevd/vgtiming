@@ -149,7 +149,7 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
         <h1>Nouvelle Course</h1>
         <button 
           type="button" 
-          className="btn-unified btn-outline-secondary-unified"
+          className="race-button secondary"
           onClick={onCancel}
         >
           <i className="fas fa-times"></i>
@@ -308,7 +308,7 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
             <div className="d-flex justify-content-end gap-2">
               <button 
                 type="button" 
-                className="btn-unified btn-secondary-unified"
+                className="race-button secondary"
                 onClick={onCancel}
                 disabled={isSubmitting}
               >
@@ -316,7 +316,7 @@ const AddRace = ({ onRaceAdded, onCancel }) => {
               </button>
               <button 
                 type="submit" 
-                className="btn-unified btn-primary-unified"
+                className="race-button primary"
                 disabled={isSubmitting}
               >
                 {isSubmitting ? (
