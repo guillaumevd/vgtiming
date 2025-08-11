@@ -56,7 +56,7 @@ const Home = () => {
       
       // Calculer les statistiques des courses
       const activeRaces = races.filter(race => 
-        race.status === 'active' || race.status === 'ready' || race.status === 'paused'
+        race.status === 'active' || race.status === 'finishing' || race.status === 'ready' || race.status === 'paused'
       );
       
       // Charger tous les participants

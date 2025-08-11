@@ -52,6 +52,18 @@
   border: 1px solid #48bb78;
 }
 
+.status-badge.status-active {
+  background: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid #48bb78;
+}
+
+.status-badge.status-finishing {
+  background: rgba(255, 179, 71, 0.2);
+  color: #f56500;
+  border: 1px solid #f56500;
+}
+
 .status-badge.status-paused {
   background: rgba(237, 137, 54, 0.2);
   color: #ed8936;

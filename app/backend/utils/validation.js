@@ -30,7 +30,7 @@ const raceSchema = Joi.object({
   durationType: Joi.string().valid('Distance', 'Temps', 'Tours').optional(),
   maxParticipants: Joi.number().integer().min(1).optional(),
   description: Joi.string().max(1000).optional(),
-  status: Joi.string().valid('draft', 'ready', 'active', 'paused', 'finished', 'cancelled').optional()
+  status: Joi.string().valid('draft', 'ready', 'active', 'finishing', 'paused', 'finished', 'cancelled').optional()
 });
 
 // Validation pour un participant

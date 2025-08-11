@@ -81,12 +81,16 @@ class TimingService {
         raceId: participant.raceId 
       });
       
-      // Vérifier que la course est en cours
+      // Vérifier que la course est en cours ou en cours de finition
       const race = this.raceModel.findById(participant.raceId);
-      if (!race || race.status !== RACE_STATUS.IN_PROGRESS) {
+      logger.debug(`Vérification statut course pour EPC ${epcTag}: race=${race?.name}, status="${race?.status}"`);
+      
+      const acceptedStatuses = ['in_progress', 'active', 'finishing'];
+      if (!race || !acceptedStatuses.includes(race.status)) {
         logger.warn(`Course non active pour le participant EPC ${epcTag}:`, { 
           raceId: participant.raceId, 
-          raceStatus: race?.status 
+          raceStatus: race?.status,
+          acceptedStatuses: acceptedStatuses
         });
         return;
       }
@@ -430,6 +434,12 @@ class TimingService {
         throw new Error(`Aucun participant trouvé avec le numéro ${bibNumber}`);
       }
 
+      // Empêcher les participants déjà terminés d'enregistrer de nouveaux passages
+      if (timingData.status === 'finished') {
+        logger.warn(`🚫 Tentative de passage pour ${timingData.participantName} (#${bibNumber}) qui est déjà terminé - Passage ignoré`);
+        return timingData; // Retourner les données existantes sans modification
+      }
+
       const passing = {
         checkpoint: passingData.checkpoint || 'Intermédiaire',
         time: passingData.time || new Date().toISOString(),
@@ -454,6 +464,12 @@ class TimingService {
       const timingData = this.timingDataModel.findByBibNumber(raceId, bibNumber);
       if (!timingData) {
         throw new Error(`Aucun participant trouvé avec le numéro ${bibNumber}`);
+      }
+
+      // Empêcher les participants déjà terminés d'enregistrer de nouveaux passages
+      if (timingData.status === 'finished') {
+        logger.warn(`🚫 Tentative de passage pour ${timingData.participantName} (#${bibNumber}) qui est déjà terminé - Passage ignoré`);
+        return timingData; // Retourner les données existantes sans modification
       }
 
       // Calculer les temps depuis le GT de départ
@@ -529,6 +545,9 @@ class TimingService {
 
       const updatedTiming = this.timingDataModel.addPassing(timingData.id, passing);
 
+      // Vérifier si ce participant a terminé ses tours requis
+      await this.checkParticipantFinished(raceId, timingData.id, updatedTiming);
+
       // Recalculer les positions après chaque passage
       await this.calculatePositions(raceId, timingData.category);
       
@@ -544,6 +563,66 @@ class TimingService {
     } catch (error) {
       logger.error(`Erreur lors de l'ajout du passage CrossMgr pour le dossard ${bibNumber} dans la course ${raceId}:`, error);
       throw error;
+    }
+  }
+
+  /**
+   * Vérifier si un participant a terminé ses tours requis
+   */
+  async checkParticipantFinished(raceId, participantId, timingData) {
+    try {
+      const race = this.raceModel.findById(raceId);
+      if (!race) {
+        logger.warn(`checkParticipantFinished: Course ${raceId} non trouvée`);
+        return;
+      }
+
+      // Seulement pour les courses en tours
+      if (race.durationType !== 'Tours') {
+        logger.debug(`checkParticipantFinished: Course ${race.name} n'est pas en mode Tours (${race.durationType})`);
+        return;
+      }
+
+      const passings = this.parsePassings(timingData.passings);
+      const lapCount = passings.length;
+      
+      logger.debug(`checkParticipantFinished: ${timingData.participantName} a ${lapCount}/${race.duration} tours (statut: ${timingData.status}, course: ${race.status})`);
+
+      // Si le participant a atteint le nombre de tours requis
+      if (lapCount >= race.duration) {
+        // Marquer le participant comme terminé seulement s'il n'est pas déjà terminé
+        if (timingData.status !== 'finished') {
+          logger.info(`🏁 Marquage ${timingData.participantName} comme terminé (${lapCount} tours atteints)`);
+          const finishedTiming = this.timingDataModel.finishTiming(participantId, passings[passings.length - 1].time);
+          
+          if (finishedTiming) {
+            logger.info(`🏁 Participant ${timingData.participantName} a terminé ses ${race.duration} tours (statut course: ${race.status})`);
+            
+            // Vérifier si tous les participants ont terminé (pour toutes les courses actives ou en finition)
+            if (race.status === 'in_progress' || race.status === 'finishing') {
+              setTimeout(async () => {
+                const allFinished = await this.checkAllParticipantsFinished(raceId);
+                if (allFinished) {
+                  logger.info(`🏁 Tous les participants ont terminé - Fin automatique de la course`);
+                  await this.autoFinishRace(raceId, race.finishReason || 'Tous les participants ont terminé');
+                } else {
+                  logger.debug(`⏳ Attente que les autres participants terminent leur tour`);
+                }
+              }, 1000); // Petit délai pour laisser le temps aux calculs
+            }
+            
+          } else {
+            logger.error(`❌ Erreur lors du marquage comme terminé pour ${timingData.participantName}`);
+          }
+        } else {
+          logger.debug(`⚡ ${timingData.participantName} est déjà marqué comme terminé`);
+        }
+      } else {
+        logger.debug(`⏱️ ${timingData.participantName} n'a pas encore terminé (${lapCount}/${race.duration} tours)`);
+      }
+      
+    } catch (error) {
+      logger.warn(`Erreur lors de la vérification de fin pour le participant ${participantId}:`, error);
     }
   }
 
@@ -919,7 +998,12 @@ class TimingService {
   async checkRaceFinishConditions(raceId) {
     try {
       const race = this.raceModel.findById(raceId);
-      if (!race || race.status !== 'in_progress') {
+      if (!race) {
+        return { shouldFinish: false };
+      }
+      
+      // Permettre la vérification pour les courses 'in_progress' et 'finishing'
+      if (race.status !== 'in_progress' && race.status !== 'finishing') {
         return { shouldFinish: false };
       }
 
@@ -978,15 +1062,34 @@ class TimingService {
       if (shouldFinish) {
         logger.info(`🏁 Condition de fin de course remplie: ${reason}`);
         
-        // Auto-terminer la course
-        await this.autoFinishRace(raceId, reason);
+        // Phase 1 : Marquer la course comme en cours de finition
+        await this.startFinishingRace(raceId, reason);
         
         return { 
-          shouldFinish: true, 
+          shouldFinish: false, // Ne pas terminer immédiatement
+          finishing: true,
           reason,
           raceId,
           raceName: race.name
         };
+      }
+
+      // Si la course est en phase de finition, vérifier si tous les participants ont terminé
+      if (race.status === 'finishing') {
+        const allFinished = await this.checkAllParticipantsFinished(raceId);
+        if (allFinished) {
+          logger.info(`🏁 Tous les participants ont terminé leur tour - Fin définitive de la course`);
+          
+          // Phase 2 : Terminer définitivement la course
+          await this.autoFinishRace(raceId, race.finishReason || 'Tous les participants ont terminé');
+          
+          return { 
+            shouldFinish: true, 
+            reason: race.finishReason || 'Tous les participants ont terminé',
+            raceId,
+            raceName: race.name
+          };
+        }
       }
 
       return { shouldFinish: false };
@@ -994,6 +1097,99 @@ class TimingService {
     } catch (error) {
       logger.error(`Erreur lors de la vérification des conditions de fin de course ${raceId}:`, error);
       return { shouldFinish: false, error: error.message };
+    }
+  }
+
+  /**
+   * Marquer une course comme en cours de finition (permet aux participants de finir leur tour)
+   */
+  async startFinishingRace(raceId, reason) {
+    try {
+      logger.info(`🏁 Début de la phase de finition: ${reason}`);
+      
+      // Changer le statut de la course à "finishing"
+      const updatedRace = this.raceModel.update(raceId, { 
+        status: 'finishing',
+        finishingStartedAt: new Date().toISOString(),
+        finishReason: reason
+      });
+
+      if (!updatedRace) {
+        throw new Error('Impossible de mettre à jour le statut de la course');
+      }
+
+      logger.info(`Course ${updatedRace.name} est maintenant en phase de finition`);
+      return updatedRace;
+      
+    } catch (error) {
+      logger.error(`Erreur lors du début de finition de course ${raceId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Vérifier si tous les participants ont terminé leur tour en cours
+   */
+  async checkAllParticipantsFinished(raceId) {
+    try {
+      const race = this.raceModel.findById(raceId);
+      if (!race) {
+        return false;
+      }
+
+      // Permettre la vérification pour les courses 'in_progress' et 'finishing'
+      if (race.status !== 'in_progress' && race.status !== 'finishing') {
+        return false;
+      }
+
+      const timingData = this.timingDataModel.findByRace(raceId);
+      logger.debug(`Vérification fin de tous les participants pour ${race.name}: ${timingData.length} participants`);
+      
+      // Pour les courses en tours : vérifier que tous sont terminés, DNF ou DNS
+      if (race.durationType === 'Tours') {
+        const participantStatuses = timingData.map(participant => {
+          const passings = this.parsePassings(participant.passings);
+          const status = {
+            name: participant.participantName,
+            status: participant.status,
+            laps: passings.length,
+            required: race.duration
+          };
+          logger.debug(`Participant ${participant.participantName}: statut=${participant.status}, tours=${passings.length}/${race.duration}`);
+          return status;
+        });
+        
+        const allFinished = timingData.every(participant => {
+          // Un participant est considéré comme "fini" s'il est marqué comme finished, dnf, ou dns
+          const isFinished = ['finished', 'dnf', 'dns'].includes(participant.status);
+          return isFinished;
+        });
+        
+        logger.debug(`Tous les participants terminés ? ${allFinished}`);
+        return allFinished;
+      }
+      
+      // Pour les courses en temps : vérifier que tous les participants en course ont terminé leur tour
+      // (ou sont DNF/DNS)
+      if (race.durationType === 'Temps') {
+        const allFinished = timingData.every(participant => {
+          // Si le participant est DNF ou DNS, on le considère comme terminé
+          if (participant.status === 'dnf' || participant.status === 'dns' || participant.status === 'finished') {
+            return true;
+          }
+          
+          // Si le participant est encore en course, il peut continuer jusqu'à la fin de son tour
+          return participant.status !== 'running';
+        });
+        
+        return allFinished;
+      }
+      
+      return false;
+      
+    } catch (error) {
+      logger.error(`Erreur lors de la vérification des participants terminés ${raceId}:`, error);
+      return false;
     }
   }
 

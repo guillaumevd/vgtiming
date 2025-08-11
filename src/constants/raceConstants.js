@@ -24,6 +24,7 @@ export const RACE_STATUS = {
   DRAFT: 'draft',
   READY: 'ready',
   RUNNING: 'running',
+  FINISHING: 'finishing',
   PAUSED: 'paused',
   FINISHED: 'finished',
   CANCELLED: 'cancelled'

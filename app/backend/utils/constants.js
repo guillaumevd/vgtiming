@@ -32,6 +32,7 @@ const RACE_STATUS = {
   READY: 'ready',
   IN_PROGRESS: 'in_progress', // Ajout de IN_PROGRESS
   ACTIVE: 'active',
+  FINISHING: 'finishing', // Course en cours de finition - permet aux participants de terminer leur tour
   PAUSED: 'paused',
   FINISHED: 'finished',
   CANCELLED: 'cancelled',

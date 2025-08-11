@@ -67,17 +67,18 @@ const Timing = () => {
         
         // Actualiser lors des messages de timing CrossMgr (passages de participants)
         window.electronAPI.onCrossMgrMessage((event, data) => {
-          console.log('📡 LISTENER FONCTIONNE ! Message CrossMgr reçu dans timing/index.js:', data);
-          console.log('📡 Timestamp événement:', new Date().toLocaleTimeString());
-          console.log('📡 Type de données reçues:', typeof data, 'Contenu:', JSON.stringify(data, null, 2));
-          
-          // SIGNAL DE DIAGNOSTIC - Envoyer un signal au backend pour confirmer la réception
-          if (window.electronAPI && window.electronAPI.invoke) {
-            window.electronAPI.invoke('debug:frontend-received-crossmgr', { timestamp: new Date().toISOString(), data: data });
-          }
-          
-          // Vérifier si c'est un passage de participant
-          if (data && (data.epcTag || data.passingTime)) {
+          try {
+            console.log('📡 LISTENER FONCTIONNE ! Message CrossMgr reçu dans timing/index.js:', data);
+            console.log('📡 Timestamp événement:', new Date().toLocaleTimeString());
+            console.log('📡 Type de données reçues:', typeof data, 'Contenu:', JSON.stringify(data, null, 2));
+            
+            // SIGNAL DE DIAGNOSTIC - Envoyer un signal au backend pour confirmer la réception
+            if (window.electronAPI && window.electronAPI.invoke) {
+              window.electronAPI.invoke('debug:frontend-received-crossmgr', { timestamp: new Date().toISOString(), data: data });
+            }
+            
+            // Vérifier si c'est un passage de participant
+            if (data && (data.epcTag || data.passingTime)) {
             console.log('🏃 Passage de participant détecté!');
             console.log('🏃 EPC Tag:', data.epcTag);
             console.log('🏃 Temps de passage:', data.passingTime);
@@ -86,7 +87,7 @@ const Timing = () => {
             const getCurrentRace = async () => {
               try {
                 // Récupérer les courses actives via l'API
-                const racesResult = await window.electronAPI.invoke('race:getAll', { status: ['active', 'in_progress'] });
+                const racesResult = await window.electronAPI.invoke('race:getAll', { status: ['active', 'in_progress', 'finishing'] });
                 if (racesResult.success && racesResult.data && racesResult.data.length > 0) {
                   const currentRace = racesResult.data[0]; // Prendre la première course active
                   console.log('🏃 Course actuelle (API):', currentRace?.id, currentRace?.name, 'status:', currentRace?.status);
@@ -153,6 +154,10 @@ const Timing = () => {
             }, 500);
           } else {
             console.log('📡 Message CrossMgr (pas un passage):', data);
+          }
+          } catch (error) {
+            console.error('❌ ERREUR dans le listener CrossMgr:', error);
+            console.error('❌ Stack trace:', error.stack);
           }
         });
 
@@ -260,7 +265,7 @@ const Timing = () => {
   const loadRaces = async () => {
     try {
       setLoading(true);
-      const result = await window.VGTiming.getAllRaces({ status: ['active', 'ready', 'paused'] });
+      const result = await window.VGTiming.getAllRaces({ status: ['active', 'ready', 'paused', 'finishing'] });
       
       if (result.success) {
         const availableRaces = result.data || [];
@@ -432,24 +437,27 @@ const Timing = () => {
   };
 
   const refreshTimingData = async () => {
-    if (!selectedRace) {
-      console.log('❌ refreshTimingData: Pas de course sélectionnée');
-      return;
-    }
-    
     try {
-      console.log('🔄 Rafraîchissement des données timing pour course:', selectedRace.id, selectedRace.name);
+      // Récupérer dynamiquement la course active au lieu d'utiliser selectedRace (évite les problèmes de closure)
+      const racesResult = await window.electronAPI.invoke('race:getAll', { status: ['active', 'in_progress', 'finishing'] });
+      if (!racesResult.success || !racesResult.data || racesResult.data.length === 0) {
+        console.log('❌ refreshTimingData: Pas de course active trouvée');
+        return;
+      }
+      
+      const currentRace = racesResult.data[0]; // Prendre la première course active
+      console.log('🔄 Rafraîchissement des données timing pour course:', currentRace.id, currentRace.name, 'status:', currentRace.status);
       
       // Charger les statistiques de chronométrage via IPC
-      const statsResult = await window.electronAPI.invoke('timing:getStats', selectedRace.id);
+      const statsResult = await window.electronAPI.invoke('timing:getStats', currentRace.id);
       if (statsResult.success) {
         setTimingStats(statsResult.data);
         console.log('📊 Stats timing récupérées:', statsResult.data);
       }
       
       // Charger les données de chronométrage mises à jour via IPC
-      console.log('🔍 Appel timing:getByRace via IPC avec ID:', selectedRace.id);
-      const timingResult = await window.electronAPI.invoke('timing:getByRace', selectedRace.id);
+      console.log('🔍 Appel timing:getByRace via IPC avec ID:', currentRace.id);
+      const timingResult = await window.electronAPI.invoke('timing:getByRace', currentRace.id);
       console.log('📥 Réponse timing:getByRace via IPC:', timingResult);
       
       if (timingResult.success) {
@@ -470,6 +478,32 @@ const Timing = () => {
         
         setTimingData(timingResult.data || []);
         console.log('✅ TimingData mis à jour dans l\'état:', timingResult.data?.length || 0, 'participants');
+        
+        // Mettre à jour selectedRace si nécessaire
+        console.log('🔍 Comparaison selectedRace:', {
+          selectedRaceExists: !!selectedRace,
+          selectedRaceId: selectedRace?.id,
+          selectedRaceStatus: selectedRace?.status,
+          currentRaceId: currentRace.id,
+          currentRaceStatus: currentRace.status,
+          needsUpdate: !selectedRace || selectedRace.id !== currentRace.id || selectedRace.status !== currentRace.status
+        });
+        
+        if (!selectedRace || selectedRace.id !== currentRace.id || selectedRace.status !== currentRace.status) {
+          console.log('🔄 Mise à jour de la course sélectionnée:', currentRace.name, 'status:', currentRace.status);
+          setSelectedRace(currentRace);
+          setRaceStatus(currentRace.status); // AJOUT : Mettre à jour le statut pour l'affichage
+          console.log('✅ Course sélectionnée mise à jour avec succès');
+        } else {
+          console.log('⚡ Pas besoin de mettre à jour selectedRace');
+        }
+        
+        // Toujours mettre à jour raceStatus même si selectedRace ne change pas (au cas où seul le statut change)
+        if (raceStatus !== currentRace.status) {
+          console.log('🔄 Mise à jour du statut d\'affichage:', raceStatus, '->', currentRace.status);
+          setRaceStatus(currentRace.status);
+        }
+        
       } else {
         console.error('❌ Erreur lors de la récupération des données timing:', timingResult.error);
       }
@@ -510,6 +544,7 @@ const Timing = () => {
         <div className="timing-status">
           <span className={`status-badge status-${raceStatus}`}>
             {raceStatus === 'active' && 'En cours'}
+            {raceStatus === 'finishing' && 'En cours de finition'}
             {raceStatus === 'paused' && 'En pause'}
             {raceStatus === 'finished' && 'Terminé'}
             {raceStatus === 'ready' && 'Prêt'}
