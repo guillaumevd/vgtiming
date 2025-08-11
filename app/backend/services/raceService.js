@@ -368,7 +368,16 @@ class RaceService {
       const deletedCount = this.timingDataModel.deleteByRace(raceId);
       
       // Remettre le statut à "ready" ou "draft"
-      const newStatus = race.status === RACE_STATUS.COMPLETED ? RACE_STATUS.READY : race.status;
+      let newStatus;
+      if (race.status === RACE_STATUS.COMPLETED || race.status === RACE_STATUS.FINISHED) {
+        newStatus = RACE_STATUS.READY;
+      } else if (race.status === RACE_STATUS.DRAFT) {
+        newStatus = RACE_STATUS.DRAFT;
+      } else {
+        // Pour les autres statuts (active, paused, etc.), on remet à ready
+        newStatus = RACE_STATUS.READY;
+      }
+      
       await this.changeRaceStatus(raceId, newStatus);
 
       logger.info(`Course réinitialisée: ${race.name} - ${deletedCount} données de timing supprimées`);

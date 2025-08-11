@@ -336,12 +336,17 @@ const Timing = () => {
       // Arrêter le rafraîchissement temps réel
       stopTimingRefresh();
       
-      // Remettre le statut de la course à "ready"
-      const result = await window.VGTiming.changeRaceStatus(selectedRace.id, 'ready');
+      console.log('🔄 Début de la réinitialisation de la course:', selectedRace.name);
       
-      if (result.success) {
+      // Réinitialiser complètement la course (données de timing + statut) via l'API IPC
+      const resetResult = await window.electronAPI.invoke('race:reset', selectedRace.id);
+      
+      if (resetResult.success) {
+        console.log('✅ Course réinitialisée avec succès (timing + statut)');
+        
+        // Mettre à jour l'état local
         setRaceStatus('ready');
-        setSelectedRace(result.data);
+        setSelectedRace({ ...selectedRace, status: 'ready' });
         setTimingData([]);
         
         // Réinitialiser les statistiques
@@ -350,15 +355,20 @@ const Timing = () => {
           totalLaps: 0,
           lastPassingTime: null,
           runningCount: 0,
-          finishedCount: 0
+          finishedCount: 0,
+          raceStarted: false,
+          gtTimestamp: null
         });
         
-        console.log('Course remise à zéro:', selectedRace.name);
+        // Recharger les courses pour mettre à jour la sidebar
+        await loadRaces();
+        
+        console.log('🎉 Course remise à zéro avec succès:', selectedRace.name);
       } else {
-        console.error('Error resetting race:', result.error);
+        console.error('❌ Erreur lors de la réinitialisation:', resetResult.error);
       }
     } catch (error) {
-      console.error('Error resetting race:', error);
+      console.error('❌ Erreur lors de la réinitialisation de la course:', error);
     }
   };
 

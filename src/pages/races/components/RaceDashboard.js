@@ -18,8 +18,8 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
     try {
       setLoading(true);
       
-      // Charger les participants
-      const participantsResult = await window.VGTiming.getParticipantsByRace(race.id);
+      // Charger les participants via IPC
+      const participantsResult = await window.electronAPI.invoke('participant:getByRace', race.id);
       if (participantsResult.success) {
         setParticipants(participantsResult.data || []);
       } else {
@@ -28,9 +28,9 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
       }
 
       // Charger les données de chronométrage si la course est en cours ou terminée
-      if (race.status === 'in_progress' || race.status === 'finished') {
+      if (race.status === 'in_progress' || race.status === 'finished' || race.status === 'finishing') {
         try {
-          const timingResult = await window.VGTiming.getTimingDataByRace(race.id);
+          const timingResult = await window.electronAPI.invoke('timing:getByRace', race.id);
           if (timingResult.success) {
             setTimingData(timingResult.data || []);
           } else {
@@ -57,31 +57,29 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
   const handleStatusChange = async (newStatus) => {
     setIsUpdatingStatus(true);
     try {
-      // Créer un objet propre sans les champs automatiques
-      const updateData = {
-        name: raceData.name,
-        date: raceData.date,
-        time: raceData.time,
-        location: raceData.location,
-        type: raceData.type,
-        duration: raceData.duration,
-        durationType: raceData.durationType,
-        maxParticipants: raceData.maxParticipants,
-        description: raceData.description,
-        status: newStatus
-      };
+      console.log('🔄 Changement du statut de la course vers:', newStatus);
       
-      const result = await window.VGTiming.updateRace(race.id, updateData);
+      // Mettre à jour le statut via l'API IPC
+      const statusResult = await window.electronAPI.invoke('race:changeStatus', race.id, newStatus);
       
-      if (result.success) {
-        setRaceData(result.data);
-        onRaceUpdated(result.data);
+      if (statusResult.success) {
+        console.log('✅ Statut changé avec succès vers:', newStatus);
+        
+        // Récupérer les données mises à jour de la course
+        const raceResult = await window.electronAPI.invoke('race:getById', race.id, false);
+        
+        if (raceResult.success) {
+          setRaceData(raceResult.data);
+          onRaceUpdated(raceResult.data);
+        }
+        
         showToast(`Statut changé vers "${newStatus}"`, 'success');
       } else {
-        throw new Error(result.error || 'Erreur lors de la mise à jour du statut');
+        console.error('❌ Erreur lors du changement de statut:', statusResult.error);
+        throw new Error(statusResult.error || 'Erreur lors de la mise à jour du statut');
       }
     } catch (error) {
-      console.error('Erreur lors du changement de statut:', error);
+      console.error('❌ Erreur lors du changement de statut:', error);
       showToast(error.message || 'Erreur lors du changement de statut', 'error');
     } finally {
       setIsUpdatingStatus(false);
@@ -95,23 +93,40 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
 
     setIsResetting(true);
     try {
-      // Supprimer tous les participants
+      console.log('🔄 Remise à zéro complète de la course:', race.name);
+      
+      // 1. Supprimer tous les participants
+      console.log('🔄 Suppression des participants...');
       for (const participant of participants) {
-        await window.VGTiming.deleteParticipant(participant.id);
+        const deleteResult = await window.electronAPI.invoke('participant:delete', participant.id);
+        if (!deleteResult.success) {
+          console.error('❌ Erreur lors de la suppression du participant:', participant.name, deleteResult.error);
+          throw new Error(`Erreur lors de la suppression du participant ${participant.name}: ${deleteResult.error}`);
+        }
       }
+      console.log('✅ Participants supprimés');
 
-      // TODO: Supprimer les données de chronométrage quand l'API sera disponible
-      
-      // Recharger les données
-      await loadDashboardData();
-      showToast('Course remise à zéro avec succès !', 'success');
-      
-      // Mettre à jour le statut vers "draft"
-      if (raceData.status !== 'draft') {
-        await handleStatusChange('draft');
+      // 2. Réinitialiser complètement la course (données de timing + statut)
+      console.log('🔄 Réinitialisation complète de la course...');
+      const resetResult = await window.electronAPI.invoke('race:reset', race.id);
+      if (!resetResult.success) {
+        console.error('❌ Erreur lors de la réinitialisation de la course:', resetResult.error);
+        throw new Error(`Erreur lors de la réinitialisation: ${resetResult.error}`);
       }
+      console.log('✅ Course réinitialisée avec succès');
+      
+      // 3. Mettre à jour l'état local
+      setRaceData({ ...raceData, status: 'ready' });
+      onRaceUpdated({ ...raceData, status: 'ready' });
+      
+      // 4. Recharger les données
+      await loadDashboardData();
+      
+      showToast('Course remise à zéro avec succès !', 'success');
+      console.log('🎉 Course remise à zéro avec succès');
+      
     } catch (error) {
-      console.error('Erreur lors de la remise à zéro:', error);
+      console.error('❌ Erreur lors de la remise à zéro:', error);
       showToast(error.message || 'Erreur lors de la remise à zéro', 'error');
     } finally {
       setIsResetting(false);
@@ -125,16 +140,24 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
 
     setIsResetting(true);
     try {
-      // Supprimer tous les participants
+      console.log('🔄 Suppression de tous les participants pour la course:', race.name);
+      
+      // Supprimer tous les participants via l'API IPC
       for (const participant of participants) {
-        await window.VGTiming.deleteParticipant(participant.id);
+        const deleteResult = await window.electronAPI.invoke('participant:delete', participant.id);
+        if (!deleteResult.success) {
+          console.error('❌ Erreur lors de la suppression du participant:', participant.name, deleteResult.error);
+          throw new Error(`Erreur lors de la suppression du participant ${participant.name}: ${deleteResult.error}`);
+        }
       }
+      
+      console.log('✅ Tous les participants supprimés avec succès');
       
       // Recharger les données
       await loadDashboardData();
       showToast('Participants supprimés avec succès !', 'success');
     } catch (error) {
-      console.error('Erreur lors de la suppression des participants:', error);
+      console.error('❌ Erreur lors de la suppression des participants:', error);
       showToast(error.message || 'Erreur lors de la suppression des participants', 'error');
     } finally {
       setIsResetting(false);
@@ -142,17 +165,35 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
   };
 
   const handleResetTimingData = async () => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer toutes les données de chronométrage ?')) {
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer toutes les données de chronométrage ? La course sera remise en statut "Prêt".')) {
       return;
     }
 
     setIsResetting(true);
     try {
-      // TODO: Supprimer les données de chronométrage quand l'API sera disponible
-      showToast('Fonctionnalité en cours de développement', 'info');
+      console.log('🔄 Réinitialisation complète de la course:', race.name);
+      
+      // Utiliser le service de reset complet de la course qui gère les transitions de statut
+      const resetResult = await window.electronAPI.invoke('race:reset', race.id);
+      
+      if (resetResult.success) {
+        console.log('✅ Course réinitialisée avec succès');
+        
+        // Mettre à jour l'état local avec le nouveau statut
+        setRaceData({ ...raceData, status: 'ready' });
+        onRaceUpdated({ ...raceData, status: 'ready' });
+        
+        // Recharger les données du dashboard
+        await loadDashboardData();
+        
+        showToast('Données de chronométrage supprimées et course remise en état "Prêt" !', 'success');
+      } else {
+        console.error('❌ Erreur lors de la réinitialisation:', resetResult.error);
+        showToast(resetResult.error || 'Erreur lors de la réinitialisation de la course', 'error');
+      }
     } catch (error) {
-      console.error('Erreur lors de la suppression des données:', error);
-      showToast(error.message || 'Erreur lors de la suppression des données', 'error');
+      console.error('❌ Erreur lors de la réinitialisation:', error);
+      showToast(error.message || 'Erreur lors de la réinitialisation de la course', 'error');
     } finally {
       setIsResetting(false);
     }
@@ -267,11 +308,17 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
           <div className="management-actions">
             <div className="status-management">
               <h3>Statut de la course</h3>
+              {raceData.status === 'finished' && (
+                <div className="alert alert-info">
+                  <i className="fas fa-info-circle me-2"></i>
+                  Cette course est terminée. Pour la remettre en état "Prêt", utilisez la fonction "Remise à zéro complète" ci-dessous.
+                </div>
+              )}
               <div className="status-buttons">
                 <button
                   className={`btn-unified ${raceData.status === 'draft' ? 'btn-primary-unified' : 'btn-secondary-unified'}`}
                   onClick={() => handleStatusChange('draft')}
-                  disabled={isUpdatingStatus || raceData.status === 'draft'}
+                  disabled={isUpdatingStatus || raceData.status === 'draft' || raceData.status === 'finished'}
                 >
                   <i className="fas fa-edit"></i>
                   Brouillon
@@ -279,7 +326,8 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
                 <button
                   className={`btn-unified ${raceData.status === 'ready' ? 'btn-success-unified' : 'btn-secondary-unified'}`}
                   onClick={() => handleStatusChange('ready')}
-                  disabled={isUpdatingStatus || raceData.status === 'ready'}
+                  disabled={isUpdatingStatus || raceData.status === 'ready' || raceData.status === 'finished'}
+                  title={raceData.status === 'finished' ? 'Utilisez la fonction de remise à zéro pour remettre une course terminée en état prêt' : ''}
                 >
                   <i className="fas fa-check"></i>
                   Prêt
