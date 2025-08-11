@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { showToast } from '../../../utils/notifications';
 import './css/RaceDashboard.css';
 
@@ -9,6 +9,282 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
   const [loading, setLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  
+  const printRef = useRef();
+  
+  const handlePrint = () => {
+    if (!printRef.current) {
+      console.error('Aucun contenu à imprimer');
+      showToast('Aucun contenu disponible pour l\'impression', 'error');
+      return;
+    }
+
+    const printContent = printRef.current.cloneNode(true);
+    const printWindow = window.open('', '_blank');
+    
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Résultats Officiels - ${raceData.name}</title>
+          <meta charset="utf-8">
+          <style>
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+              font-family: 'Arial', sans-serif; 
+              margin: 0;
+              padding: 15mm;
+              color: #2c3e50;
+              line-height: 1.4;
+              background: white;
+              min-height: 100vh;
+              display: flex;
+              flex-direction: column;
+            }
+            
+            .main-content {
+              flex: 1;
+            }
+            
+            /* En-tête avec logo */
+            .print-header {
+              display: flex;
+              align-items: flex-start;
+              justify-content: space-between;
+              margin-bottom: 30px;
+              border-bottom: 3px solid #3498db;
+              padding-bottom: 20px;
+            }
+            
+            .logo-section {
+              display: flex;
+              align-items: center;
+              gap: 20px;
+            }
+            
+            .logo-section img {
+              height: 80px;
+              width: auto;
+            }
+            
+            .company-info {
+              display: flex;
+              flex-direction: column;
+            }
+            
+            .company-name {
+              font-size: 24px;
+              font-weight: bold;
+              color: #3498db;
+              margin-bottom: 5px;
+            }
+            
+            .company-tagline {
+              font-size: 14px;
+              color: #7f8c8d;
+              margin-bottom: 10px;
+            }
+            
+            .race-basic-info {
+              font-size: 13px;
+              color: #34495e;
+            }
+            
+            .race-basic-info div {
+              margin-bottom: 3px;
+            }
+            
+            .title-section {
+              text-align: right;
+              flex: 1;
+              margin-left: 20px;
+            }
+            
+            .race-title {
+              font-size: 28px;
+              font-weight: bold;
+              color: #2c3e50;
+              margin-bottom: 5px;
+            }
+            
+            .race-subtitle {
+              font-size: 16px;
+              color: #7f8c8d;
+              margin-bottom: 10px;
+            }
+            
+            .race-info {
+              font-size: 14px;
+              color: #34495e;
+            }
+            
+            /* Statistiques supprimées */
+            
+            /* Tables */
+            .section-title {
+              font-size: 18px;
+              color: #2c3e50;
+              margin: 30px 0 15px 0;
+              border-left: 4px solid #3498db;
+              padding-left: 10px;
+            }
+            
+            table { 
+              width: 100%; 
+              border-collapse: collapse; 
+              margin: 20px 0;
+              background: white;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            
+            th { 
+              background: #3498db;
+              color: white;
+              font-weight: bold;
+              padding: 12px 8px;
+              text-align: left;
+              font-size: 13px;
+            }
+            
+            td { 
+              padding: 10px 8px;
+              border-bottom: 1px solid #ecf0f1;
+              font-size: 12px;
+            }
+            
+            tr:nth-child(even) {
+              background-color: #f8f9fa;
+            }
+            
+            tr:hover {
+              background-color: #e3f2fd;
+            }
+            
+            /* Pied de page */
+            .print-footer {
+              margin-top: auto;
+              padding-top: 20px;
+              border-top: 2px solid #ecf0f1;
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              font-size: 11px;
+              color: #7f8c8d;
+            }
+            
+            @media print {
+              body { 
+                margin: 0; 
+                padding: 10mm;
+              }
+              .no-print { 
+                display: none !important; 
+              }
+              .print-header {
+                page-break-after: avoid;
+              }
+              table {
+                page-break-inside: avoid;
+              }
+              th {
+                background: #3498db !important;
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="main-content">
+            <!-- En-tête avec logo -->
+            <div class="print-header">
+              <div class="logo-section">
+                <img src="./assets/images/logo.png" alt="VG-Timing Logo" />
+                <div class="company-info">
+                  <div class="company-name">VG-TIMING</div>
+                  <div class="company-tagline">Système de Chronométrage Professionnel</div>
+                  <div class="race-basic-info">
+                    <div><strong>Course :</strong> ${raceData.name}</div>
+                    <div><strong>Date :</strong> ${new Date(raceData.startTime || raceData.createdAt).toLocaleDateString('fr-FR', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}</div>
+                    ${raceData.location ? `<div><strong>Lieu :</strong> ${raceData.location}</div>` : ''}
+                    <div><strong>Participants :</strong> ${participants.length} inscrits</div>
+                  </div>
+                </div>
+              </div>
+              <div class="title-section">
+                <h1 class="race-title">${raceData.name}</h1>
+                <p class="race-subtitle">Résultats Officiels de Course</p>
+                <div class="race-info">
+                  <div>Document officiel généré par VG-Timing</div>
+                  ${raceData.organizer ? `<div><strong>Organisateur :</strong> ${raceData.organizer}</div>` : ''}
+                  ${raceData.contact ? `<div><strong>Contact :</strong> ${raceData.contact}</div>` : ''}
+                </div>
+              </div>
+            </div>          <!-- Statistiques -->
+          <!-- Stats supprimées comme demandé -->
+
+          <!-- Liste des participants -->
+          <div class="participants-section">
+            <h2 class="section-title">Liste des Participants Inscrits</h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>N°</th>
+                  <th>Nom</th>
+                  <th>Prénom</th>
+                  <th>Équipe/Club</th>
+                  <th>Catégorie</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${participants.map((participant, index) => `
+                  <tr>
+                    <td><strong>${participant.bibNumber || participant.number || index + 1}</strong></td>
+                    <td>${participant.lastName || ''}</td>
+                    <td>${participant.firstName || ''}</td>
+                    <td>${participant.team || participant.club || '-'}</td>
+                    <td>${participant.category || '-'}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Résultats de course -->
+          <div class="results-section">
+            <h2 class="section-title">Classement Final</h2>
+            ${printContent.innerHTML}
+          </div>
+          </div>
+
+          <!-- Pied de page -->
+          <div class="print-footer">
+            <div>
+              <div><strong>VG-Timing</strong> - Système de Chronométrage Professionnel</div>
+              <div>Document généré le ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</div>
+            </div>
+            <div>
+              <div>Course: <strong>${raceData.name}</strong></div>
+              ${raceData.organizer ? `<div>Organisateur: ${raceData.organizer}</div>` : ''}
+            </div>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
+  };
 
   useEffect(() => {
     loadDashboardData();
@@ -463,7 +739,7 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
             {raceData.status === 'finished' && timingData.length > 0 && (
               <button
                 className="race-button secondary"
-                onClick={() => window.print()}
+                onClick={handlePrint}
               >
                 <i className="fas fa-print"></i>
                 Imprimer les résultats
@@ -473,7 +749,7 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
 
           {raceData.status === 'finished' && timingData.length > 0 ? (
             // Affichage des résultats finaux
-            <div className="final-results">
+            <div className="final-results" ref={printRef}>
               <div className="results-summary">
                 <div className="summary-stat">
                   <span className="stat-value">{timingData.length}</span>
