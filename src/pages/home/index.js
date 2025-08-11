@@ -375,12 +375,15 @@ const Home = () => {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem' }}>
+      <div className="system-activity-section">
         {/* État du système */}
         <div className="status-bar">
           <h3>
             📊 État du Système
           </h3>
+          <p className="status-description">
+            Surveillez en temps réel l'état des composants essentiels de VG-Timing pour assurer un chronométrage fiable et performant.
+          </p>
           <div className="status-grid">
             <div className="status-item">
               <div className={`home-status-pill ${isConnected ? 'home-status-connected' : 'home-status-disconnected'}`}></div>
