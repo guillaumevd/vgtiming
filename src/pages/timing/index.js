@@ -43,6 +43,19 @@ const Timing = () => {
   // Déterminer le temps à afficher (temps réel si course active, sinon dernier temps connu)
   const displayElapsedTime = isRaceActive ? realTimeElapsed : (timingStats.elapsedTime || '00:00:00');
 
+  // Surveiller les changements de statut pour maintenir localStorage à jour
+  useEffect(() => {
+    if (selectedRace) {
+      if (['in_progress', 'active', 'finishing', 'paused'].includes(selectedRace.status)) {
+        localStorage.setItem('vg-timing-active-race', selectedRace.id);
+        console.log('💾 Course mise à jour dans localStorage:', selectedRace.name, 'Status:', selectedRace.status);
+      } else {
+        localStorage.removeItem('vg-timing-active-race');
+        console.log('🗑️ Course supprimée de localStorage (plus en cours):', selectedRace.name, 'Status:', selectedRace.status);
+      }
+    }
+  }, [selectedRace?.status, selectedRace?.id]);
+
   useEffect(() => {
     const initializeTiming = async () => {
       // Attendre que l'API soit prête
@@ -174,6 +187,13 @@ const Timing = () => {
       console.log('🧹 Nettoyage composant Timing - suppression listeners');
       stopTimingRefresh();
       
+      // Vérifier si on doit garder la course sauvegardée
+      // On la garde seulement si elle est encore en cours
+      if (selectedRace && !['in_progress', 'active', 'finishing', 'paused'].includes(selectedRace.status)) {
+        localStorage.removeItem('vg-timing-active-race');
+        console.log('🧹 Course supprimée de localStorage lors du nettoyage (plus en cours)');
+      }
+      
       // Nettoyer les listeners IPC
       if (window.electronAPI && window.electronAPI.removeCrossMgrListeners) {
         window.electronAPI.removeCrossMgrListeners();
@@ -221,15 +241,34 @@ const Timing = () => {
   const loadRaces = async () => {
     try {
       setLoading(true);
-      const result = await window.VGTiming.getAllRaces({ status: ['active', 'ready', 'paused', 'finishing'] });
+      const result = await window.VGTiming.getAllRaces({ status: ['active', 'ready', 'paused', 'finishing', 'in_progress'] });
       
       if (result.success) {
         const availableRaces = result.data || [];
         setRaces(availableRaces);
         
-        // Auto-select first active race or first race
-        const activeRace = availableRaces.find(race => race.status === 'active');
-        const raceToSelect = activeRace || availableRaces[0];
+        // Vérifier s'il y a une course sauvegardée en cours
+        const savedRaceId = localStorage.getItem('vg-timing-active-race');
+        let raceToSelect = null;
+        
+        if (savedRaceId) {
+          // Chercher la course sauvegardée dans les courses disponibles
+          const savedRace = availableRaces.find(race => race.id === savedRaceId);
+          if (savedRace && ['in_progress', 'active', 'finishing', 'paused'].includes(savedRace.status)) {
+            console.log('🔄 Course en cours restaurée:', savedRace.name, 'Status:', savedRace.status);
+            raceToSelect = savedRace;
+          } else {
+            // La course sauvegardée n'est plus en cours, supprimer de localStorage
+            localStorage.removeItem('vg-timing-active-race');
+          }
+        }
+        
+        // Si pas de course sauvegardée, auto-select first active race or first race
+        if (!raceToSelect) {
+          const activeRace = availableRaces.find(race => ['in_progress', 'active'].includes(race.status));
+          raceToSelect = activeRace || availableRaces[0];
+        }
+        
         if (raceToSelect) {
           await selectRace(raceToSelect);
         }
@@ -248,6 +287,15 @@ const Timing = () => {
       setSelectedRace(race);
       setRaceStatus(race.status || 'ready');
       
+      // Sauvegarder la course si elle est en cours
+      if (['in_progress', 'active', 'finishing', 'paused'].includes(race.status)) {
+        localStorage.setItem('vg-timing-active-race', race.id);
+        console.log('💾 Course en cours sauvegardée:', race.name, 'Status:', race.status);
+      } else {
+        // Si la course n'est pas en cours, supprimer de localStorage
+        localStorage.removeItem('vg-timing-active-race');
+      }
+      
       // Charger les participants de la course
       const participantsResult = await window.VGTiming.getParticipantsByRace(race.id);
       if (participantsResult.success) {
@@ -259,6 +307,24 @@ const Timing = () => {
       if (timingResult.success) {
         setTimingData(timingResult.data || []);
       }
+      
+      // Charger les statistiques de timing (incluant GT timestamp pour le chronométre)
+      console.log('📊 Chargement des stats pour la course sélectionnée:', race.name);
+      const statsResult = await window.electronAPI.invoke('timing:getStats', race.id);
+      if (statsResult.success) {
+        setTimingStats(statsResult.data);
+        console.log('📊 Stats chargées:', statsResult.data);
+        console.log('⏱️ GT Timestamp récupéré:', statsResult.data.gtTimestamp);
+      } else {
+        console.error('❌ Erreur lors du chargement des stats:', statsResult.error);
+      }
+      
+      // Si la course est en cours, démarrer le rafraîchissement temps réel
+      if (['in_progress', 'active', 'finishing'].includes(race.status)) {
+        console.log('🔄 Démarrage du rafraîchissement temps réel pour course en cours');
+        startTimingRefresh();
+      }
+      
     } catch (error) {
       console.error('Error selecting race:', error);
     }
