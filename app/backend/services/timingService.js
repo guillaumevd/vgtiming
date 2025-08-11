@@ -50,9 +50,6 @@ class TimingService {
       // Le GT est envoyé au démarrage d'une course, nous devons déterminer quelle course
       // Pour l'instant, on stocke juste le timestamp pour la course active
       logger.info('GT envoyé à CrossMgr', { timestamp: data.timestamp, purpose: data.purpose });
-      
-      // TODO: Association plus précise avec la course active
-      // Pour l'instant, on peut utiliser la dernière course démarrée
     } catch (error) {
       logger.error('Erreur lors de la gestion du GT envoyé:', error);
     }

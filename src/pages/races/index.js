@@ -33,8 +33,6 @@ const Race = () => {
   };
 
   const onGoToTiming = (race) => {
-    // TODO: Passer l'information de la course sélectionnée à la page timing
-    // Pour l'instant, on navigue simplement vers la page timing
     console.log('Navigation vers chronométrage pour la course:', race.name);
     navigate(ROUTES.TIMING);
   };

@@ -58,7 +58,6 @@ class IPCHandlers {
         const raceController = this.controllers.getRaceController();
         const participantController = this.controllers.getParticipantController();
         
-        // TODO: Implémenter les méthodes getCount dans les controllers
         return {
           success: true,
           data: {
