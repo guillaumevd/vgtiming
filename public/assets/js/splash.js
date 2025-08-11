@@ -14,8 +14,8 @@ class Splash {
 
     async startAnimation() {
         let splashes = [
-            { "message": "VG-Timing Scoring bientot disponible !", "author": "Guillaume" },
-            { "message": "VG-Timing Scoring En développement !", "author": "Guillaume" }
+            { "message": "VG-Timing bientot disponible !", "author": "Guillaume" },
+            { "message": "VG-Timing en développement !", "author": "Guillaume" }
         ]
         let splash = splashes[Math.floor(Math.random() * splashes.length)];
         this.splashMessage.textContent = splash.message;
@@ -35,17 +35,17 @@ class Splash {
 
     async checkUpdate() {
         if (isDev) return this.maintenanceCheck();
-        this.setStatus(`Checking for updates...`);
+        this.setStatus(`Vérification des mises à jour...`);
 
         ipcRenderer.invoke('update-app').then(err => {
             if (err.error) {
                 let error = err.message;
-                this.shutdown(`Error while checking for updates :<br>${error}`);
+                this.shutdown(`Erreur lors de la vérification des mises à jour:<br>${error}`);
             }
         })
 
         ipcRenderer.on('updateAvailable', () => {
-            this.setStatus(`Update available !`);
+            this.setStatus(`Mise à jour disponible !`);
             this.toggleProgress();
             ipcRenderer.send('start-update');
         })
@@ -65,7 +65,7 @@ class Splash {
             this.startLauncher();
         }).catch(e => {
             console.error(e);
-            return this.shutdown("No internet connection,<br>try again later.");
+            return this.shutdown("Aucune connexion internet,<br>veuillez réessayer plus tard.");
         })
     }
 
