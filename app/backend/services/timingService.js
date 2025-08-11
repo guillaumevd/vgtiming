@@ -4,11 +4,104 @@ const logger = require('../utils/logger');
 const { TIMING_STATUS, RACE_STATUS } = require('../utils/constants');
 
 class TimingService {
-  constructor(models) {
+  constructor(models, crossmgrService = null) {
     this.timingDataModel = models.timingData;
     this.participantModel = models.participant;
     this.raceModel = models.race;
     this.activeTimers = new Map(); // Pour gérer les timers actifs
+    this.crossmgrService = crossmgrService;
+    this.raceStartTimes = new Map(); // Map<raceId, gtTimestamp> pour stocker les temps GT
+    
+    // Écouter les événements CrossMgr si disponible
+    if (this.crossmgrService) {
+      this.crossmgrService.on('participant_passing', (data) => {
+        this.handleParticipantPassing(data);
+      });
+      
+      this.crossmgrService.on('gt_sent', (data) => {
+        this.handleGTSent(data);
+      });
+    }
+  }
+
+  /**
+   * Définir le service CrossMgr après l'initialisation
+   */
+  setCrossMgrService(crossmgrService) {
+    this.crossmgrService = crossmgrService;
+    
+    // Configurer les listeners
+    if (this.crossmgrService) {
+      this.crossmgrService.on('participant_passing', (data) => {
+        this.handleParticipantPassing(data);
+      });
+      
+      this.crossmgrService.on('gt_sent', (data) => {
+        this.handleGTSent(data);
+      });
+    }
+  }
+
+  /**
+   * Gérer l'envoi d'un GT (Get Time) - marquer le temps de départ de la course
+   */
+  handleGTSent(data) {
+    try {
+      // Le GT est envoyé au démarrage d'une course, nous devons déterminer quelle course
+      // Pour l'instant, on stocke juste le timestamp pour la course active
+      logger.info('GT envoyé à CrossMgr', { timestamp: data.timestamp, purpose: data.purpose });
+      
+      // TODO: Association plus précise avec la course active
+      // Pour l'instant, on peut utiliser la dernière course démarrée
+    } catch (error) {
+      logger.error('Erreur lors de la gestion du GT envoyé:', error);
+    }
+  }
+
+  /**
+   * Gérer un passage de participant détecté par CrossMgr
+   */
+  async handleParticipantPassing(data) {
+    try {
+      const { epcTag, passingTime, fullMessage } = data;
+      
+      logger.info(`Passage participant détecté - EPC: ${epcTag}`, { passingTime });
+      
+      // Trouver le participant par EPC tag dans toutes les courses actives
+      const participant = this.participantModel.findByEpcTag(epcTag);
+      
+      if (!participant) {
+        logger.warn(`Aucun participant trouvé avec l'EPC tag: ${epcTag}`);
+        return;
+      }
+      
+      logger.info(`Participant trouvé pour EPC ${epcTag}:`, { 
+        name: participant.name, 
+        number: participant.number, 
+        raceId: participant.raceId 
+      });
+      
+      // Vérifier que la course est en cours
+      const race = this.raceModel.findById(participant.raceId);
+      if (!race || race.status !== RACE_STATUS.IN_PROGRESS) {
+        logger.warn(`Course non active pour le participant EPC ${epcTag}:`, { 
+          raceId: participant.raceId, 
+          raceStatus: race?.status 
+        });
+        return;
+      }
+      
+      // Enregistrer le passage
+      await this.addParticipantPassing(participant.raceId, participant.number, {
+        passingTime,
+        epcTag,
+        source: 'crossmgr',
+        rawMessage: fullMessage
+      });
+      
+    } catch (error) {
+      logger.error('Erreur lors du traitement du passage participant:', error);
+    }
   }
 
   /**
@@ -21,14 +114,33 @@ class TimingService {
         throw new Error('Course non trouvée');
       }
 
-      if (race.status !== RACE_STATUS.READY && race.status !== RACE_STATUS.DRAFT) {
-        throw new Error('La course doit être en statut "ready" ou "draft" pour initialiser le chronométrage');
+      if (race.status !== RACE_STATUS.READY && 
+          race.status !== RACE_STATUS.DRAFT && 
+          race.status !== RACE_STATUS.IN_PROGRESS) {
+        throw new Error('La course doit être en statut "ready", "draft" ou "in_progress" pour initialiser le chronométrage');
+      }
+
+      // Envoyer GT à CrossMgr pour obtenir le temps de référence
+      if (this.crossmgrService) {
+        const gtResult = this.crossmgrService.sendGetTime();
+        if (gtResult.success) {
+          // Stocker le temps de départ de la course
+          this.raceStartTimes.set(raceId, gtResult.timestamp);
+          logger.info(`GT envoyé pour la course ${race.name} - Temps de référence: ${gtResult.timestamp}`);
+        } else {
+          logger.warn(`Impossible d'envoyer GT à CrossMgr: ${gtResult.error}`);
+        }
       }
 
       const timings = this.timingDataModel.initializeRaceTimings(raceId);
       
       logger.info(`Chronométrage initialisé pour ${timings.length} participants de la course ${race.name}`);
-      return timings;
+      return {
+        timings,
+        gtSent: this.crossmgrService ? true : false,
+        gtTimestamp: this.raceStartTimes.get(raceId),
+        raceId
+      };
     } catch (error) {
       logger.error(`Erreur lors de l'initialisation du chronométrage pour la course ${raceId}:`, error);
       throw error;
@@ -36,7 +148,7 @@ class TimingService {
   }
 
   /**
-   * Obtenir toutes les données de chronométrage d'une course
+   * Obtenir toutes les données de chronométrage d'une course avec statistiques
    */
   async getTimingDataByRace(raceId, options = {}) {
     try {
@@ -45,12 +157,139 @@ class TimingService {
         throw new Error('Course non trouvée');
       }
 
-      const timingData = this.timingDataModel.findByRace(raceId, options);
-      return timingData;
+      // Calculer les positions d'abord
+      this.timingDataModel.calculatePositions(raceId);
+
+      const rawTimingData = this.timingDataModel.findByRace(raceId, options);
+      
+      // Enrichir les données avec les statistiques de tours
+      const enrichedData = rawTimingData.map(timing => {
+        const passings = this.parsePassings(timing.passings);
+        
+        // Calculer les statistiques
+        const lapCount = passings.length;
+        let bestLapTime = null;
+        let lastLapTime = null;
+        let totalTime = null;
+        let elapsedTimeMs = 0;
+        
+        if (passings.length > 0) {
+          // Trouver le meilleur temps au tour
+          const lapTimes = passings
+            .filter(p => p.lapTime != null)
+            .map(p => p.lapTime);
+            
+          if (lapTimes.length > 0) {
+            const bestTime = Math.min(...lapTimes);
+            bestLapTime = this.formatTimeFromMs(bestTime);
+          }
+          
+          // Dernier temps au tour
+          const lastPassing = passings[passings.length - 1];
+          if (lastPassing.lapTime != null) {
+            lastLapTime = this.formatTimeFromMs(lastPassing.lapTime);
+          }
+          
+          // Temps total écoulé
+          if (lastPassing.elapsedTime != null) {
+            elapsedTimeMs = lastPassing.elapsedTime;
+            totalTime = this.formatTimeFromMs(lastPassing.elapsedTime);
+          }
+        }
+        
+        return {
+          ...timing,
+          // Ajouter les statistiques pour le frontend
+          laps: lapCount,
+          lapCount: lapCount,
+          bestLapTime: bestLapTime || 'N/A',
+          bestTime: bestLapTime || 'N/A',
+          lastLapTime: lastLapTime || 'N/A', 
+          totalTime: totalTime || 'N/A',
+          name: timing.participantName,
+          number: timing.bibNumber,
+          elapsedTimeMs: elapsedTimeMs
+        };
+      });
+
+      // Calculer les écarts après avoir toutes les données enrichies
+      const leader = enrichedData.find(p => p.position === 1);
+      const leaderLaps = leader ? leader.laps : 0;
+      const leaderTimeMs = leader ? leader.elapsedTimeMs : 0;
+
+      enrichedData.forEach(participant => {
+        if (participant.position === 1) {
+          participant.gap = '-'; // Leader
+        } else if (participant.laps < leaderLaps) {
+          const lapDiff = leaderLaps - participant.laps;
+          participant.gap = lapDiff === 1 ? '-1 tour' : `-${lapDiff} tours`;
+        } else if (participant.laps === leaderLaps && leaderTimeMs > 0 && participant.elapsedTimeMs > 0) {
+          const timeDiff = participant.elapsedTimeMs - leaderTimeMs;
+          participant.gap = '+' + this.formatTimeFromMs(timeDiff);
+        } else {
+          participant.gap = 'N/A';
+        }
+      });
+
+      return enrichedData;
     } catch (error) {
       logger.error(`Erreur lors de la récupération des données de chronométrage pour la course ${raceId}:`, error);
       throw error;
     }
+  }
+  
+  /**
+   * Fonction utilitaire pour parser les passings de façon sécurisée
+   */
+  parsePassings(passingsData) {
+    try {
+      // Si c'est déjà un array, le retourner tel quel
+      if (Array.isArray(passingsData)) {
+        return passingsData;
+      }
+      
+      // Si pas de données, retourner array vide
+      if (!passingsData) {
+        return [];
+      }
+      
+      // Si c'est une string, essayer de parser le JSON
+      if (typeof passingsData === 'string') {
+        if (passingsData.trim() === '') {
+          return [];
+        }
+        return JSON.parse(passingsData);
+      }
+      
+      // Si c'est un objet (cas probablement), essayer de le traiter
+      if (typeof passingsData === 'object') {
+        // Déjà un objet parsed, assumer que c'est un array
+        return Array.isArray(passingsData) ? passingsData : [passingsData];
+      }
+      
+      return [];
+    } catch (error) {
+      logger.warn(`Erreur parsing passings dans getTimingDataByRace:`, { 
+        data: passingsData, 
+        dataType: typeof passingsData,
+        error: error.message 
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Formater un temps en millisecondes en format MM:SS.mmm
+   */
+  formatTimeFromMs(milliseconds) {
+    if (!milliseconds || milliseconds <= 0) return 'N/A';
+    
+    const totalSeconds = Math.floor(milliseconds / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const ms = Math.floor((milliseconds % 1000) / 10); // 2 décimales
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
   }
 
   /**
@@ -182,7 +421,7 @@ class TimingService {
   }
 
   /**
-   * Ajouter un passage intermédiaire
+   * Ajouter un passage pour un participant (générique)
    */
   async addPassing(raceId, bibNumber, passingData) {
     try {
@@ -203,6 +442,100 @@ class TimingService {
       return updatedTiming;
     } catch (error) {
       logger.error(`Erreur lors de l'ajout d'un passage pour le dossard ${bibNumber} dans la course ${raceId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ajouter un passage pour un participant depuis CrossMgr
+   */
+  async addParticipantPassing(raceId, bibNumber, passingData) {
+    try {
+      const timingData = this.timingDataModel.findByBibNumber(raceId, bibNumber);
+      if (!timingData) {
+        throw new Error(`Aucun participant trouvé avec le numéro ${bibNumber}`);
+      }
+
+      // Calculer les temps depuis le GT de départ
+      const gtTimestamp = this.raceStartTimes.get(raceId);
+      let elapsedTime = null;
+      let lapTime = null;
+
+      // Fonction utilitaire pour parser les passings de façon sécurisée
+      const parsePassings = (passingsData) => {
+        try {
+          // Si c'est déjà un tableau, le retourner directement
+          if (Array.isArray(passingsData)) {
+            return passingsData;
+          }
+          
+          // Si c'est null ou undefined, retourner tableau vide
+          if (!passingsData) {
+            return [];
+          }
+          
+          // Si c'est une chaîne, tenter de la parser
+          if (typeof passingsData === 'string') {
+            if (passingsData.trim() === '') {
+              return [];
+            }
+            return JSON.parse(passingsData);
+          }
+          
+          // Pour tout autre type, retourner tableau vide
+          return [];
+        } catch (error) {
+          logger.warn(`Erreur parsing passings, utilisation d'un tableau vide:`, { data: passingsData, error: error.message });
+          return [];
+        }
+      };
+
+      if (gtTimestamp && passingData.passingTime) {
+        const startTime = new Date(gtTimestamp);
+        const currentTime = new Date(passingData.passingTime);
+        elapsedTime = currentTime.getTime() - startTime.getTime(); // en millisecondes
+
+        // Calculer le temps au tour (depuis le passage précédent)
+        const passings = parsePassings(timingData.passings);
+        if (passings.length > 0) {
+          const lastPassing = passings[passings.length - 1];
+          const lastTime = new Date(lastPassing.time);
+          lapTime = currentTime.getTime() - lastTime.getTime();
+        } else {
+          // Premier passage = temps écoulé depuis le départ
+          lapTime = elapsedTime;
+        }
+      }
+
+      const passing = {
+        checkpoint: `Tour ${parsePassings(timingData.passings).length + 1}`,
+        time: passingData.passingTime,
+        source: 'crossmgr',
+        epcTag: passingData.epcTag,
+        rawMessage: passingData.rawMessage,
+        elapsedTime: elapsedTime, // Temps depuis GT
+        lapTime: lapTime, // Temps au tour
+        ...passingData
+      };
+
+      // Si c'est le premier passage, marquer le participant comme "running" AVANT d'ajouter le passage
+      const currentPassings = parsePassings(timingData.passings);
+      const isFirstPassing = currentPassings.length === 0;
+      
+      if (isFirstPassing) {
+        this.timingDataModel.startTiming(timingData.id, passingData.passingTime);
+        logger.info(`Premier passage détecté pour ${timingData.participantName} (#${bibNumber}) - Statut: RUNNING`);
+      }
+
+      const updatedTiming = this.timingDataModel.addPassing(timingData.id, passing);
+
+      // Recalculer les positions après chaque passage
+      await this.calculatePositions(raceId, timingData.category);
+      
+      logger.info(`Passage CrossMgr enregistré pour ${timingData.participantName} (#${bibNumber}) - Temps écoulé: ${elapsedTime ? (elapsedTime/1000).toFixed(1) + 's' : 'N/A'}`);
+      return updatedTiming;
+    } catch (error) {
+      logger.error(`Erreur lors de l'ajout du passage CrossMgr pour le dossard ${bibNumber} dans la course ${raceId}:`, error);
       throw error;
     }
   }
@@ -258,7 +591,71 @@ class TimingService {
       }
 
       const stats = this.timingDataModel.getRaceStats(raceId);
-      return stats;
+      
+      // Enrichir les statistiques pour le frontend
+      const gtTimestamp = this.raceStartTimes.get(raceId);
+      let elapsedTime = '00:00:00';
+      
+      if (gtTimestamp && race.status === RACE_STATUS.IN_PROGRESS) {
+        const startTime = new Date(gtTimestamp);
+        const currentTime = new Date();
+        const elapsed = currentTime.getTime() - startTime.getTime();
+        
+        // Convertir en format HH:MM:SS
+        const hours = Math.floor(elapsed / 3600000);
+        const minutes = Math.floor((elapsed % 3600000) / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        
+        elapsedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+      }
+
+      // Obtenir les participants en course et terminés
+      const runningParticipants = this.timingDataModel.findByRace(raceId, { status: TIMING_STATUS.RUNNING });
+      const finishedParticipants = this.timingDataModel.findByRace(raceId, { status: TIMING_STATUS.FINISHED });
+      
+      // Calculer le nombre total de tours/passages
+      let totalLaps = 0;
+      const allTimings = this.timingDataModel.findByRace(raceId);
+      allTimings.forEach(timing => {
+        try {
+          // Utiliser la fonction de parsing sécurisée
+          const passings = this.parsePassings(timing.passings);
+          totalLaps += passings.length;
+        } catch (error) {
+          // Ignorer les erreurs et continuer
+          logger.warn(`Erreur parsing passings pour timing ${timing.id}: ${error.message}`);
+        }
+      });
+
+      // Dernier passage
+      let lastPassingTime = null;
+      allTimings.forEach(timing => {
+        try {
+          const passings = this.parsePassings(timing.passings);
+          passings.forEach(passing => {
+            if (passing.time && (!lastPassingTime || new Date(passing.time) > new Date(lastPassingTime))) {
+              lastPassingTime = passing.time;
+            }
+          });
+        } catch (error) {
+          // Ignorer les erreurs
+          logger.warn(`Erreur parsing passings pour timing ${timing.id}: ${error.message}`);
+        }
+      });
+
+      const enrichedStats = {
+        ...stats,
+        elapsedTime,
+        totalLaps,
+        lastPassingTime,
+        runningCount: runningParticipants.length,
+        finishedCount: finishedParticipants.length,
+        raceStatus: race.status,
+        gtTimestamp,
+        raceStarted: race.status === RACE_STATUS.IN_PROGRESS
+      };
+
+      return enrichedStats;
     } catch (error) {
       logger.error(`Erreur lors de la récupération des statistiques de chronométrage pour la course ${raceId}:`, error);
       throw error;
@@ -284,7 +681,13 @@ class TimingService {
       });
 
       if (timingData.length === 0) {
-        throw new Error('Aucun participant en attente de démarrage');
+        logger.warn(`Aucun participant en attente de démarrage pour la course ${race.name} - Démarrage à vide autorisé`);
+        return {
+          raceId,
+          startTime: startTime || new Date().toISOString(),
+          participantCount: 0,
+          message: 'Course démarrée sans participants'
+        };
       }
 
       const start = startTime || new Date().toISOString();
@@ -511,3 +914,11 @@ class TimingService {
 }
 
 module.exports = TimingService;
+
+
+
+
+
+
+
+

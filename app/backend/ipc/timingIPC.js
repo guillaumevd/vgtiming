@@ -14,6 +14,12 @@ class TimingIPCHandler {
       return await this.timingController.initializeRaceTiming(raceId);
     });
 
+    // Démarrer une course avec chronométrage complet
+    ipcMain.handle('timing:startRace', async (event, raceId) => {
+      logger.debug('IPC: timing:startRace', { raceId });
+      return await this.timingController.startRaceWithTiming(raceId);
+    });
+
     // Obtenir les données de chronométrage d'une course
     ipcMain.handle('timing:getByRace', async (event, raceId, options = {}) => {
       logger.debug('IPC: timing:getByRace', { raceId, options });

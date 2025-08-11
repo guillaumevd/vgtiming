@@ -242,8 +242,36 @@ class CrossMgrService extends EventEmitter {
       // Autres messages de timing CrossMgr (après connexion établie) - afficher le message complet
       if (message.includes('date=') || message.includes('time=')) {
         logger.info('CrossMgr: Message de timing reçu');
-        this.sendLogToApp(`⏱️ ${message}`, 'info', 'crossmgr', { type: 'timing' });
-        // Pas d'événement timing_message pour éviter les doublons de logs
+        
+        // Tenter de parser comme passage de participant
+        const passingResult = this.parsePassingMessage(message);
+        
+        if (passingResult.success) {
+          // C'est un passage de participant valide
+          const { epcTag, passingTime, rawTime } = passingResult.data;
+          
+          this.sendLogToApp(`🏃 Passage détecté - EPC: ${epcTag}, Heure: ${rawTime}`, 'info', 'crossmgr', { 
+            type: 'participant_passing',
+            epcTag,
+            passingTime,
+            rawTime
+          });
+          
+          // Émettre l'événement de passage pour le TimingService
+          this.emit('participant_passing', {
+            epcTag,
+            passingTime,
+            rawTime,
+            fullMessage: message,
+            timestamp: new Date().toISOString()
+          });
+          
+          logger.debug('CrossMgr: Passage participant traité', { epcTag, passingTime });
+        } else {
+          // Message de timing mais pas un passage - afficher normalement
+          this.sendLogToApp(`⏱️ ${message}`, 'info', 'crossmgr', { type: 'timing' });
+          logger.debug('CrossMgr: Message timing non-passage', { message });
+        }
         return;
       }
 
@@ -378,6 +406,89 @@ class CrossMgrService extends EventEmitter {
     } else {
       logger.warn('CrossMgr: Tentative d\'envoi sans connexion', { message });
       return false;
+    }
+  }
+
+  /**
+   * Envoyer la commande GT pour obtenir le temps de référence
+   * Utilisé au démarrage d'une course pour synchroniser les temps
+   */
+  sendGetTime() {
+    if (!this.client || !this.isConnected) {
+      logger.warn('CrossMgr: Impossible d\'envoyer GT - pas de connexion');
+      return { success: false, error: 'Pas de connexion CrossMgr' };
+    }
+
+    try {
+      this.client.write('GT\r');
+      logger.info('CrossMgr: Commande GT envoyée pour démarrage course');
+      this.sendLogToApp('🚀 GT envoyé à CrossMgr (démarrage course)', 'info', 'crossmgr', { 
+        type: 'command_sent', 
+        command: 'GT',
+        purpose: 'race_start'
+      });
+      
+      this.emit('gt_sent', { 
+        timestamp: new Date().toISOString(),
+        purpose: 'race_start'
+      });
+      
+      return { success: true, timestamp: new Date().toISOString() };
+    } catch (error) {
+      logger.error('CrossMgr: Erreur envoi GT', { error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Parser un message de passage de participant
+   * Format: DA3691 01:24:54.543102 10  00000      C7 date=20250811
+   */
+  parsePassingMessage(message) {
+    try {
+      // Expression régulière pour parser le format CrossMgr
+      const regex = /^([A-F0-9]+)\s+(\d{2}:\d{2}:\d{2}\.\d+).*date=(\d{8})$/;
+      const match = message.match(regex);
+      
+      if (match) {
+        const [, epcTag, timeStr, dateStr] = match;
+        
+        // Convertir la date et l'heure en timestamp ISO
+        const year = parseInt(dateStr.substr(0, 4));
+        const month = parseInt(dateStr.substr(4, 2)) - 1; // JS months sont 0-indexés
+        const day = parseInt(dateStr.substr(6, 2));
+        
+        const [hours, minutes, seconds] = timeStr.split(':');
+        const [sec, microsec] = seconds.split('.');
+        
+        const passingTime = new Date(year, month, day, 
+          parseInt(hours), parseInt(minutes), parseInt(sec), 
+          Math.floor(parseInt(microsec) / 1000)); // Convertir microsec en millisec
+        
+        return {
+          success: true,
+          data: {
+            epcTag,
+            passingTime: passingTime.toISOString(),
+            rawTime: timeStr,
+            date: dateStr,
+            fullMessage: message
+          }
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Format de message non reconnu',
+          message
+        };
+      }
+    } catch (error) {
+      logger.error('CrossMgr: Erreur parsing passage', { message, error: error.message });
+      return {
+        success: false,
+        error: error.message,
+        message
+      };
     }
   }
 

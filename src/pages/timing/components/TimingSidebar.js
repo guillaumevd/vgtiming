@@ -11,7 +11,14 @@ const TimingSidebar = ({
   onStartRace,
   onStopRace,
   onResetRace,
-  onFinishRace
+  onFinishRace,
+  timingStats = {
+    elapsedTime: '00:00:00',
+    totalLaps: 0,
+    lastPassingTime: null,
+    runningCount: 0,
+    finishedCount: 0
+  }
 }) => {
 
   const getStatusIcon = (status) => {
@@ -31,6 +38,20 @@ const TimingSidebar = ({
       case 'ready': return '⚡';
       default: return '⚪';
     }
+  };
+
+  // Condition pour activer le bouton Lancer
+  const canStartRace = selectedRace && 
+                       (raceStatus === 'ready' || raceStatus === 'paused') && 
+                       isConnected;
+
+  // Classes CSS pour l'animation du bouton
+  const getStartButtonClasses = () => {
+    let classes = "btn-action btn-start";
+    if (canStartRace && raceStatus === 'ready') {
+      classes += " btn-pulse"; // Animation clignotante
+    }
+    return classes;
   };
 
   return (
@@ -155,13 +176,23 @@ const TimingSidebar = ({
         <div className="section-content">
           <div className="action-buttons">
             <button
-              className="btn-action btn-start"
+              className={getStartButtonClasses()}
               onClick={onStartRace}
-              disabled={!selectedRace || raceStatus === 'running' || raceStatus === 'finished'}
-              title={!selectedRace ? 'Sélectionnez une course' : 'Démarrer le chronométrage'}
+              disabled={!canStartRace}
+              title={
+                !selectedRace 
+                  ? 'Sélectionnez une course'
+                  : !isConnected 
+                    ? 'CrossMgr doit être connecté'
+                    : raceStatus === 'running' 
+                      ? 'Course en cours'
+                      : raceStatus === 'finished'
+                        ? 'Course terminée'
+                        : 'Démarrer le chronométrage'
+              }
             >
               <i className="fas fa-play"></i>
-              Lancer
+              {raceStatus === 'paused' ? 'Reprendre' : 'Lancer'}
             </button>
             
             <button
@@ -200,16 +231,28 @@ const TimingSidebar = ({
             <div className="info-grid">
               <div className="info-item">
                 <span className="info-label">Durée écoulée</span>
-                <span className="info-value">00:00:00</span>
+                <span className="info-value">{timingStats.elapsedTime || '00:00:00'}</span>
               </div>
               <div className="info-item">
                 <span className="info-label">Tours enregistrés</span>
-                <span className="info-value">0</span>
+                <span className="info-value">{timingStats.totalLaps || 0}</span>
               </div>
               <div className="info-item">
-                <span className="info-label">Dernier passage</span>
-                <span className="info-value">-</span>
+                <span className="info-label">En course</span>
+                <span className="info-value">{timingStats.runningCount || 0}</span>
               </div>
+              <div className="info-item">
+                <span className="info-label">Terminés</span>
+                <span className="info-value">{timingStats.finishedCount || 0}</span>
+              </div>
+              {timingStats.lastPassingTime && (
+                <div className="info-item">
+                  <span className="info-label">Dernier passage</span>
+                  <span className="info-value">
+                    {new Date(timingStats.lastPassingTime).toLocaleTimeString()}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

@@ -909,6 +909,78 @@
   color: #1a202c;
 }
 
+/* Animation pulse pour le bouton Lancer */
+.btn-pulse {
+  position: relative;
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(72, 187, 120, 0.5);
+    border-color: #48bb78;
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(72, 187, 120, 0.8), 
+                0 0 30px rgba(72, 187, 120, 0.6);
+    border-color: #68d391;
+  }
+}
+
+.btn-pulse::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  background: linear-gradient(45deg, 
+                              rgba(72, 187, 120, 0.3), 
+                              rgba(104, 211, 145, 0.3), 
+                              rgba(72, 187, 120, 0.3));
+  border-radius: 8px;
+  z-index: -1;
+  opacity: 0;
+  animation: pulse-border 2s ease-in-out infinite;
+}
+
+@keyframes pulse-border {
+  0%, 100% {
+    opacity: 0;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+/* Animation pour bouton Lancer */
+@keyframes pulse-glow {
+  0% {
+    box-shadow: 0 0 5px rgba(72, 187, 120, 0.3), 0 0 10px rgba(72, 187, 120, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(72, 187, 120, 0.6), 0 0 25px rgba(72, 187, 120, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 5px rgba(72, 187, 120, 0.3), 0 0 10px rgba(72, 187, 120, 0.2);
+  }
+}
+
+.btn-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+  border-color: #48bb78 !important;
+  background: rgba(72, 187, 120, 0.1);
+}
+
+.btn-pulse:hover:not(:disabled) {
+  animation: none;
+  background: #48bb78 !important;
+  color: #1a202c !important;
+  box-shadow: 0 0 20px rgba(72, 187, 120, 0.6) !important;
+}
+
 /* Info Grid */
 .info-grid {
   display: flex;

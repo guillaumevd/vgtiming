@@ -13,6 +13,7 @@
     "url": "git+https://github.com/guillaumevd/vgtiming.git"
   },
   "scripts": {
+    "start": "npm run dev",
     "build": "rimraf build dist && yarn version --patch && react-scripts build && electron-builder",
     "rebuild": "electron-rebuild",
     "dev": "concurrently  \"wait-on tcp:127.0.0.1:3000 && cross-env NODE_ENV=dev NODE_NO_WARNINGS=1 NODE_OPTIONS=--no-warnings electron .\" \"cross-env BROWSER=none PORT=3000 DISABLE_ESLINT_PLUGIN=true NODE_NO_WARNINGS=1 NODE_OPTIONS=--no-warnings GENERATE_SOURCEMAP=false react-scripts start\""

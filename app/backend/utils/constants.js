@@ -30,16 +30,19 @@ const DURATION_TYPES = {
 const RACE_STATUS = {
   DRAFT: 'draft',
   READY: 'ready',
+  IN_PROGRESS: 'in_progress', // Ajout de IN_PROGRESS
   ACTIVE: 'active',
   PAUSED: 'paused',
   FINISHED: 'finished',
-  CANCELLED: 'cancelled'
+  CANCELLED: 'cancelled',
+  COMPLETED: 'completed' // Ajout de COMPLETED aussi utilisé dans le code
 };
 
 // Statuts de chronométrage
 const TIMING_STATUS = {
   REGISTERED: 'registered',  // Participant inscrit mais pas encore démarré
   STARTED: 'started',        // Participant a démarré
+  RUNNING: 'running',        // Participant en cours de course
   FINISHED: 'finished',      // Participant a terminé
   DNF: 'dnf',               // Did Not Finish
   DNS: 'dns',               // Did Not Start
@@ -147,16 +150,6 @@ module.exports = {
   DURATION_TYPES,
   RACE_STATUS,
   TIMING_STATUS,
-  SETTING_CATEGORIES,
-  DEFAULT_SETTINGS,
-  ERROR_MESSAGES,
-  SUCCESS_MESSAGES
-};
-
-module.exports = {
-  RACE_TYPES,
-  DURATION_TYPES,
-  RACE_STATUS,
   SETTING_CATEGORIES,
   DEFAULT_SETTINGS,
   ERROR_MESSAGES,

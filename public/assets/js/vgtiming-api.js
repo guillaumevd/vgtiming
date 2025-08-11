@@ -244,6 +244,94 @@ class VGTimingAPI {
     return await window.electronAPI.invoke('timing:getByRace', raceId, options);
   }
 
+  async initializeRaceTiming(raceId) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      console.log('Mode web dev - Initialisation timing simulée pour course:', raceId);
+      return this.simulateResponse({ 
+        raceId, 
+        initialized: true, 
+        startTime: new Date().toISOString(),
+        gtSent: true,
+        status: 'initialized'
+      });
+    }
+    
+    return await window.electronAPI.invoke('timing:initialize', raceId);
+  }
+
+  async startRaceWithTiming(raceId) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      console.log('Mode web dev - Démarrage course complet simulé pour course:', raceId);
+      return this.simulateResponse({ 
+        raceId, 
+        race: { status: 'in_progress' },
+        timing: { initialized: true, gtSent: true },
+        massStart: { started: true },
+        status: 'running'
+      });
+    }
+    
+    return await window.electronAPI.invoke('timing:startRace', raceId);
+  }
+
+  async startMassTiming(raceId, startTime = null) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      console.log('Mode web dev - Démarrage masse simulé pour course:', raceId);
+      return this.simulateResponse({ 
+        raceId, 
+        startTime: startTime || new Date().toISOString(),
+        status: 'running',
+        gtSent: true
+      });
+    }
+    
+    return await window.electronAPI.invoke('timing:startMass', raceId, startTime);
+  }
+
+  async getTimingStats(raceId) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      return this.simulateResponse({ 
+        raceId,
+        totalParticipants: 25,
+        runningCount: 15,
+        finishedCount: 8,
+        dnsCount: 2,
+        elapsedTime: '01:23:45',
+        lastPassingTime: new Date().toISOString()
+      });
+    }
+    
+    return await window.electronAPI.invoke('timing:getStats', raceId);
+  }
+
+  async getRunningParticipants(raceId) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      return this.simulateResponse([
+        {
+          id: '1',
+          bibNumber: '101',
+          firstName: 'John',
+          lastName: 'Doe',
+          startTime: new Date(Date.now() - 3600000).toISOString(),
+          currentLap: 2,
+          status: 'running'
+        }
+      ]);
+    }
+    
+    return await window.electronAPI.invoke('timing:getRunning', raceId);
+  }
+
   // ===== SETTINGS =====
 
   async getSetting(key) {

@@ -12,6 +12,14 @@ const Timing = () => {
   const [participants, setParticipants] = useState([]);
   const [raceStatus, setRaceStatus] = useState('ready');
   const [loading, setLoading] = useState(true);
+  const [timingStats, setTimingStats] = useState({
+    elapsedTime: '00:00:00',
+    totalLaps: 0,
+    lastPassingTime: null,
+    runningCount: 0,
+    finishedCount: 0
+  });
+  const [refreshInterval, setRefreshInterval] = useState(null);
   const [settings, setSettings] = useState({
     displayType: 'list',
     sortType: 'bestLap',
@@ -40,7 +48,121 @@ const Timing = () => {
       await loadRaces();
     };
 
+    // Ajouter les listeners d'événements CrossMgr pour actualisation
+    const setupCrossMgrListeners = () => {
+      console.log('🔧 Configuration des listeners CrossMgr...');
+      console.log('🔧 window.electronAPI disponible:', !!window.electronAPI);
+      
+      if (window.electronAPI) {
+        console.log('🔧 Configuration listener onCrossMgrMessage...');
+        
+        // Actualiser lors des messages de timing CrossMgr (passages de participants)
+        window.electronAPI.onCrossMgrMessage((event, data) => {
+          console.log('📡 Message CrossMgr reçu dans timing/index.js:', data);
+          console.log('📡 Type de données reçues:', typeof data, 'Contenu:', JSON.stringify(data, null, 2));
+          
+          // Vérifier si c'est un passage de participant
+          if (data && (data.epcTag || data.passingTime)) {
+            console.log('🏃 Passage de participant détecté!');
+            console.log('🏃 EPC Tag:', data.epcTag);
+            console.log('🏃 Temps de passage:', data.passingTime);
+            
+            // Utiliser une référence fraîche à selectedRace
+            const getCurrentRace = () => {
+              const currentSelectedRace = races.find(race => race.status === 'active' || race.status === 'in_progress');
+              console.log('🏃 Course actuelle trouvée:', currentSelectedRace?.id, currentSelectedRace?.name);
+              return currentSelectedRace;
+            };
+            
+            const currentRace = getCurrentRace();
+            console.log('🔄 Lancement actualisation dans 500ms...');
+            
+            // Petite pause pour laisser le backend traiter le passage
+            setTimeout(() => {
+              console.log('🔄 Exécution de refreshTimingData...');
+              // Créer une fonction de refresh qui utilise la course actuelle
+              const refreshCurrentRaceData = async () => {
+                const raceToRefresh = getCurrentRace();
+                if (!raceToRefresh) {
+                  console.log('❌ refreshCurrentRaceData: Pas de course active trouvée');
+                  return;
+                }
+                
+                try {
+                  console.log('🔄 Rafraîchissement pour course active:', raceToRefresh.id, raceToRefresh.name);
+                  
+                  // Charger les données de chronométrage mises à jour
+                  console.log('🔍 Appel window.VGTiming.getTimingDataByRace avec ID:', raceToRefresh.id);
+                  const timingResult = await window.VGTiming.getTimingDataByRace(raceToRefresh.id);
+                  console.log('📥 Réponse getTimingDataByRace:', timingResult);
+                  
+                  if (timingResult.success) {
+                    console.log('⏱️ Données timing récupérées:', timingResult.data);
+                    console.log('📋 Nombre de participants avec données:', timingResult.data?.length || 0);
+                    
+                    // Vérifier les positions et écarts
+                    if (timingResult.data && timingResult.data.length > 0) {
+                      timingResult.data.forEach((participant, index) => {
+                        console.log(`👤 ${participant.participantName || participant.name} (#${participant.bibNumber || participant.number}):`, {
+                          position: participant.position,
+                          laps: participant.laps || participant.lapCount,
+                          gap: participant.gap,
+                          status: participant.status
+                        });
+                      });
+                    }
+                    
+                    setTimingData(timingResult.data || []);
+                    console.log('✅ TimingData mis à jour dans l\'état après passage:', timingResult.data?.length || 0, 'participants');
+                  } else {
+                    console.error('❌ Erreur lors de la récupération des données timing après passage:', timingResult.error);
+                  }
+                  
+                } catch (error) {
+                  console.error('❌ Erreur lors du rafraîchissement timing après passage:', error);
+                }
+              };
+              
+              refreshCurrentRaceData();
+            }, 500);
+          } else {
+            console.log('📡 Message CrossMgr (pas un passage):', data);
+          }
+        });
+
+        console.log('🔧 Configuration listener onCrossMgrConnectionEstablished...');
+        
+        // Actualiser lors des connexions/déconnexions
+        window.electronAPI.onCrossMgrConnectionEstablished(() => {
+          console.log('🔗 CrossMgr connecté, actualisation des données');
+          refreshTimingData();
+        });
+
+        // Écouter aussi les événements personnalisés CrossMgr  
+        window.addEventListener('crossmgr-message', (event) => {
+          console.log('🎯 Événement crossmgr-message reçu:', event.detail);
+          const data = event.detail;
+          if (data && (data.epcTag || data.passingTime)) {
+            console.log('🏃 Passage via événement personnalisé, actualisation');
+            setTimeout(() => {
+              refreshTimingData();
+            }, 500);
+          }
+        });
+        
+        console.log('✅ Listeners CrossMgr configurés avec succès');
+      } else {
+        console.error('❌ window.electronAPI non disponible, impossible de configurer les listeners');
+      }
+    };
+
     initializeTiming();
+    setupCrossMgrListeners();
+
+    // Cleanup lors du démontage du composant
+    return () => {
+      stopTimingRefresh();
+    };
   }, []);
 
   const loadSettings = async () => {
@@ -131,20 +253,29 @@ const Timing = () => {
     if (!selectedRace) return;
     
     try {
-      // Changer le statut de la course à "active"
-      const result = await window.VGTiming.changeRaceStatus(selectedRace.id, 'active');
+      console.log('🚀 Démarrage de la course:', selectedRace.name);
       
-      if (result.success) {
-        setRaceStatus('active');
-        setSelectedRace(result.data);
-        
-        // TODO: Démarrer le chronométrage de masse si nécessaire
-        console.log('Race started:', selectedRace.name);
-      } else {
-        console.error('Error starting race:', result.error);
+      // Utiliser la méthode unifiée qui gère tout le processus
+      const result = await window.VGTiming.startRaceWithTiming(selectedRace.id);
+      
+      if (!result.success) {
+        console.error('❌ Erreur démarrage course complète:', result.error);
+        return;
       }
+      
+      console.log('✅ Course démarrée avec succès:', result.data);
+      
+      // Mettre à jour l'état local
+      setRaceStatus('running');
+      setSelectedRace({...selectedRace, status: 'in_progress'});
+      
+      // Démarrer le rafraîchissement temps réel
+      startTimingRefresh();
+      
+      console.log('🏁 Course démarrée avec succès!');
+      
     } catch (error) {
-      console.error('Error starting race:', error);
+      console.error('❌ Erreur lors du démarrage de la course:', error);
     }
   };
 
@@ -152,13 +283,16 @@ const Timing = () => {
     if (!selectedRace) return;
     
     try {
+      // Arrêter le rafraîchissement temps réel
+      stopTimingRefresh();
+      
       // Changer le statut de la course à "paused"
       const result = await window.VGTiming.changeRaceStatus(selectedRace.id, 'paused');
       
       if (result.success) {
         setRaceStatus('paused');
         setSelectedRace(result.data);
-        console.log('Race paused:', selectedRace.name);
+        console.log('Course en pause:', selectedRace.name);
       } else {
         console.error('Error pausing race:', result.error);
       }
@@ -171,6 +305,9 @@ const Timing = () => {
     if (!selectedRace) return;
     
     try {
+      // Arrêter le rafraîchissement temps réel
+      stopTimingRefresh();
+      
       // Remettre le statut de la course à "ready"
       const result = await window.VGTiming.changeRaceStatus(selectedRace.id, 'ready');
       
@@ -178,7 +315,17 @@ const Timing = () => {
         setRaceStatus('ready');
         setSelectedRace(result.data);
         setTimingData([]);
-        console.log('Race reset:', selectedRace.name);
+        
+        // Réinitialiser les statistiques
+        setTimingStats({
+          elapsedTime: '00:00:00',
+          totalLaps: 0,
+          lastPassingTime: null,
+          runningCount: 0,
+          finishedCount: 0
+        });
+        
+        console.log('Course remise à zéro:', selectedRace.name);
       } else {
         console.error('Error resetting race:', result.error);
       }
@@ -191,13 +338,19 @@ const Timing = () => {
     if (!selectedRace) return;
     
     try {
+      // Arrêter le rafraîchissement temps réel
+      stopTimingRefresh();
+      
       // Changer le statut de la course à "finished"
       const result = await window.VGTiming.changeRaceStatus(selectedRace.id, 'finished');
       
       if (result.success) {
         setRaceStatus('finished');
         setSelectedRace(result.data);
-        console.log('Race finished:', selectedRace.name);
+        console.log('Course terminée:', selectedRace.name);
+        
+        // TODO: Naviguer automatiquement vers le dashboard des résultats
+        // navigate(`/races/dashboard/${selectedRace.id}`)
       } else {
         console.error('Error finishing race:', result.error);
       }
@@ -205,6 +358,77 @@ const Timing = () => {
       console.error('Error finishing race:', error);
     }
   };
+
+  // Fonctions de gestion du rafraîchissement temps réel
+  const startTimingRefresh = () => {
+    // Plus besoin d'interval automatique - actualisation basée sur les événements CrossMgr
+    console.log('📊 Rafraîchissement timing activé (basé sur événements CrossMgr)');
+    
+    // Actualisation initiale
+    refreshTimingData();
+  };
+
+  const stopTimingRefresh = () => {
+    // Plus d'interval à arrêter - les listeners restent actifs
+    console.log('⏹️ Rafraîchissement timing désactivé');
+  };
+
+  const refreshTimingData = async () => {
+    if (!selectedRace) {
+      console.log('❌ refreshTimingData: Pas de course sélectionnée');
+      return;
+    }
+    
+    try {
+      console.log('🔄 Rafraîchissement des données timing pour course:', selectedRace.id, selectedRace.name);
+      
+      // Charger les statistiques de chronométrage
+      const statsResult = await window.VGTiming.getTimingStats(selectedRace.id);
+      if (statsResult.success) {
+        setTimingStats(statsResult.data);
+        console.log('📊 Stats timing récupérées:', statsResult.data);
+      }
+      
+      // Charger les données de chronométrage mises à jour
+      console.log('🔍 Appel window.VGTiming.getTimingDataByRace avec ID:', selectedRace.id);
+      const timingResult = await window.VGTiming.getTimingDataByRace(selectedRace.id);
+      console.log('📥 Réponse getTimingDataByRace:', timingResult);
+      
+      if (timingResult.success) {
+        console.log('⏱️ Données timing récupérées:', timingResult.data);
+        console.log('📋 Nombre de participants avec données:', timingResult.data?.length || 0);
+        
+        // Vérifier les positions et écarts
+        if (timingResult.data && timingResult.data.length > 0) {
+          timingResult.data.forEach((participant, index) => {
+            console.log(`👤 ${participant.participantName || participant.name} (#${participant.bibNumber || participant.number}):`, {
+              position: participant.position,
+              laps: participant.laps || participant.lapCount,
+              gap: participant.gap,
+              status: participant.status
+            });
+          });
+        }
+        
+        setTimingData(timingResult.data || []);
+        console.log('✅ TimingData mis à jour dans l\'état:', timingResult.data?.length || 0, 'participants');
+      } else {
+        console.error('❌ Erreur lors de la récupération des données timing:', timingResult.error);
+      }
+      
+    } catch (error) {
+      console.error('❌ Erreur lors du rafraîchissement timing:', error);
+    }
+  };
+
+  // Nettoyer l'intervalle au démontage du composant
+  useEffect(() => {
+    return () => {
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+    };
+  }, [refreshInterval]);
 
   const handleDisplayModeChange = async (newMode) => {
     setDisplayMode(newMode);
@@ -274,6 +498,7 @@ const Timing = () => {
               onResetRace={handleResetRace}
               onFinishRace={handleFinishRace}
               participantCount={participants.length}
+              timingStats={timingStats}
             />
           </div>
         </div>

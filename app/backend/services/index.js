@@ -51,7 +51,8 @@ class ServiceFactory {
    */
   getTimingService() {
     if (!this._services.timing) {
-      this._services.timing = new TimingService(this.models);
+      // Créer le TimingService avec référence au CrossMgrService
+      this._services.timing = new TimingService(this.models, this.getCrossMgrService());
     }
     return this._services.timing;
   }

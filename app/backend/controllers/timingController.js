@@ -3,6 +3,7 @@ const logger = require('../utils/logger');
 class TimingController {
   constructor(services) {
     this.timingService = services.timing;
+    this.raceService = services.race;
   }
 
   /**
@@ -14,6 +15,36 @@ class TimingController {
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.initializeRaceTiming:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Démarrer une course avec chronométrage
+   * Cette méthode unifie: changement de statut + initialisation + démarrage masse
+   */
+  async startRaceWithTiming(raceId) {
+    try {
+      // 1. Changer le statut de la course à "in_progress"
+      logger.info(`Démarrage complet de la course ${raceId}`);
+      const raceResult = await this.raceService.changeRaceStatus(raceId, 'in_progress');
+      
+      // 2. Initialiser le chronométrage (envoie GT à CrossMgr)
+      const timingResult = await this.timingService.initializeRaceTiming(raceId);
+      
+      // 3. Démarrer le chronométrage de masse
+      const massTimingResult = await this.timingService.startMassTiming(raceId);
+      
+      return { 
+        success: true, 
+        data: {
+          race: raceResult,
+          timing: timingResult,
+          massStart: massTimingResult
+        }
+      };
+    } catch (error) {
+      logger.error('TimingController.startRaceWithTiming:', error);
       return { success: false, error: error.message };
     }
   }

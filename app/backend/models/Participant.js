@@ -176,6 +176,26 @@ class Participant {
   }
 
   /**
+   * Trouver un participant par EPC tag (pour CrossMgr)
+   */
+  findByEpcTag(epcTag) {
+    if (!epcTag || epcTag.trim() === '') {
+      return null;
+    }
+    
+    const result = this.db.prepare(`
+      SELECT p.*, r.status as raceStatus, r.name as raceName
+      FROM participants p
+      JOIN races r ON p.raceId = r.id
+      WHERE p.epcTag = ? AND p.isActive = 1
+      ORDER BY r.updatedAt DESC
+      LIMIT 1
+    `).get(epcTag.trim());
+    
+    return this._formatParticipant(result);
+  }
+
+  /**
    * Mettre à jour un participant
    */
   update(id, updateData) {

@@ -70,6 +70,13 @@ class CrossMgrIPCHandler {
       // Pas de message automatique - géré par sendLogToApp du service
     });
 
+    // Écouter les passages de participants
+    service.on('participant_passing', (data) => {
+      logger.debug('CrossMgr service: participant passing detected');
+      this.notifyFrontend('crossmgr:message', data);
+      // Pas de message automatique - géré par sendLogToApp du service
+    });
+
     // Écouter les messages envoyés par VG-Timing
     service.on('message_sent', (data) => {
       logger.debug('CrossMgr service: message sent');

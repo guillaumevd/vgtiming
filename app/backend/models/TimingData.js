@@ -276,28 +276,77 @@ class TimingData {
    * Calculer les positions
    */
   calculatePositions(raceId, category = null) {
+    // Récupérer tous les participants actifs (running ou finished) avec au moins un passage
     let query = `
-      SELECT id, totalTime, category
+      SELECT id, totalTime, category, status, passings
       FROM timing_data 
-      WHERE raceId = ? AND status = ? AND totalTime IS NOT NULL
+      WHERE raceId = ? AND (status = ? OR status = ?) AND passings IS NOT NULL AND passings != ''
     `;
-    const params = [raceId, TIMING_STATUS.FINISHED];
+    const params = [raceId, TIMING_STATUS.RUNNING, TIMING_STATUS.FINISHED];
 
     if (category) {
       query += ` AND category = ?`;
       params.push(category);
     }
 
-    query += ` ORDER BY totalTime ASC`;
+    const participants = this.db.prepare(query).all(params);
 
-    const finishedParticipants = this.db.prepare(query).all(params);
+    // Calculer les statistiques pour chaque participant
+    const participantStats = participants.map(p => {
+      let passings = [];
+      try {
+        // Parsing sécurisé des passings
+        if (Array.isArray(p.passings)) {
+          passings = p.passings;
+        } else if (typeof p.passings === 'string') {
+          const passingsStr = p.passings.trim();
+          passings = passingsStr === '' ? [] : JSON.parse(passingsStr);
+        } else if (p.passings && typeof p.passings === 'object') {
+          passings = [p.passings]; // Un seul objet, le mettre dans un array
+        } else {
+          passings = [];
+        }
+      } catch (error) {
+        console.warn(`Erreur parsing passings pour participant ${p.id}:`, error.message, 'Data:', p.passings);
+        passings = [];
+      }
 
+      const lapCount = passings.length;
+      const lastPassing = passings.length > 0 ? passings[passings.length - 1] : null;
+      const elapsedTime = lastPassing ? lastPassing.elapsedTime : 0;
+      const isFinished = p.status === TIMING_STATUS.FINISHED;
+
+      return {
+        id: p.id,
+        lapCount,
+        elapsedTime,
+        isFinished,
+        totalTime: p.totalTime
+      };
+    });
+
+    // Trier par nombre de tours (décroissant), puis par temps écoulé (croissant)
+    participantStats.sort((a, b) => {
+      // Les terminés d'abord
+      if (a.isFinished && !b.isFinished) return -1;
+      if (!a.isFinished && b.isFinished) return 1;
+      
+      // Puis par nombre de tours (plus de tours = meilleure position)
+      if (a.lapCount !== b.lapCount) {
+        return b.lapCount - a.lapCount;
+      }
+      
+      // Puis par temps écoulé (moins de temps = meilleure position)
+      return a.elapsedTime - b.elapsedTime;
+    });
+
+    // Mettre à jour les positions
     const updateStmt = this.db.prepare(`
       UPDATE timing_data SET position = ?, updatedAt = ? WHERE id = ?
     `);
 
     const transaction = this.db.transaction(() => {
-      finishedParticipants.forEach((participant, index) => {
+      participantStats.forEach((participant, index) => {
         updateStmt.run(
           index + 1,
           new Date().toISOString(),
@@ -308,7 +357,7 @@ class TimingData {
 
     transaction();
     
-    return finishedParticipants.length;
+    return participantStats.length;
   }
 
   /**
@@ -397,13 +446,19 @@ class TimingData {
    * Initialiser les données de chronométrage pour tous les participants d'une course
    */
   initializeRaceTimings(raceId) {
-    // Récupérer tous les participants qui n'ont pas encore de données de timing
-    const participantsWithoutTiming = this.db.prepare(`
+    // D'abord, nettoyer les anciennes données de timing pour cette course
+    this.db.prepare(`DELETE FROM timing_data WHERE raceId = ?`).run(raceId);
+    
+    // Récupérer tous les participants actifs de la course
+    const activeParticipants = this.db.prepare(`
       SELECT p.* 
       FROM participants p
-      LEFT JOIN timing_data td ON p.id = td.participantId
-      WHERE p.raceId = ? AND td.id IS NULL
+      WHERE p.raceId = ? AND p.isActive = 1
     `).all(raceId);
+
+    if (activeParticipants.length === 0) {
+      return [];
+    }
 
     const stmt = this.db.prepare(`
       INSERT INTO timing_data (
@@ -413,7 +468,7 @@ class TimingData {
 
     const results = [];
     const transaction = this.db.transaction(() => {
-      for (const participant of participantsWithoutTiming) {
+      for (const participant of activeParticipants) {
         const timing = {
           id: generateId(),
           participantId: participant.id,
