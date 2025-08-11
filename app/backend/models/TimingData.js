@@ -215,7 +215,21 @@ class TimingData {
     const timing = this.findById(id);
     if (!timing) return null;
 
-    const passings = timing.passings || [];
+    // Parser les passings existants (ils sont stockés en JSON)
+    let passings = [];
+    try {
+      if (timing.passings) {
+        if (typeof timing.passings === 'string') {
+          passings = JSON.parse(timing.passings);
+        } else if (Array.isArray(timing.passings)) {
+          passings = timing.passings;
+        }
+      }
+    } catch (e) {
+      logger.warn(`Erreur parsing passings existants pour ${id}:`, e);
+      passings = [];
+    }
+
     passings.push({
       ...passing,
       id: generateId(),

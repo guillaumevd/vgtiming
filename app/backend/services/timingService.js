@@ -957,7 +957,7 @@ class TimingService {
         let maxLaps = 0;
         timingData.forEach(participant => {
           try {
-            const passings = this.safeParsePassings(participant.passings);
+            const passings = this.parsePassings(participant.passings);
             const lapCount = passings.length;
             if (lapCount > maxLaps) {
               maxLaps = lapCount;
