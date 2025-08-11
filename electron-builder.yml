@@ -4,46 +4,110 @@ artifactName: '${productName}-setup-${version}.${ext}'
 
 copyright: 'Copyright © 2025 Guillaume Vandriessche'
 
+# Configuration générale
 asar: true
 compression: 'maximum'
 extends: null
 
+# Fichiers à inclure dans le build
 files:
-  - '!{dist,.gitignore,.vscode,docs,dev-app-update.yml,.nvmrc,.eslintrc.json}'
+  # Inclure tous les fichiers nécessaires
   - 'app/**/*'
-  - 'dist/**/*'
   - 'build/**/*'
-  - 'node_modules/**/*'
+  - 'public/**/*'
   - 'package.json'
+  - '.babelrc'
+  - 'craco.config.js'
+  
+  # Node modules sélectifs (seulement les dépendances de production)
+  - 'node_modules/**/*'
+  
+  # Exclure les fichiers de développement et inutiles
+  - '!{.git,.gitignore,.gitattributes,.vscode,docs,dev-app-update.yml,.nvmrc,.eslintrc.json}'
+  - '!{src,*.log,*.map}'
+  - '!node_modules/.cache/**/*'
+  - '!node_modules/**/*.{md,txt,LICENSE,CHANGELOG}'
+  - '!node_modules/**/test/**/*'
+  - '!node_modules/**/tests/**/*'
+  - '!node_modules/**/*.test.js'
+  - '!node_modules/**/*.spec.js'
 
+# Ressources supplémentaires (externes au ASAR)
 extraResources:
-  - 'libraries'
+  - from: 'public/assets'
+    to: 'assets'
+  - from: 'public/splash.html' 
+    to: 'splash.html'
 
-# Windows Configuration
+# Configuration Windows
 win: 
-  icon: 'build/assets/images/icon.ico'
+  icon: 'public/assets/images/icon.ico'
   target: 
     - target: 'nsis'
       arch: 'x64'
+  requestedExecutionLevel: 'asInvoker'
+  artifactName: '${productName}-setup-${version}.${ext}'
 
-# Windows Installer Configuration
+# Configuration de l'installeur Windows NSIS
 nsis:
-  oneClick: true
-  allowToChangeInstallationDirectory: false
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  allowElevation: true
   createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 'VG-Timing'
   runAfterFinish: true
+  installerIcon: 'public/assets/images/icon.ico'
+  uninstallerIcon: 'public/assets/images/icon.ico'
+  installerHeaderIcon: 'public/assets/images/icon.ico'
+  deleteAppDataOnUninstall: false
+  displayLanguageSelector: false
+  language: '1036' # Français
+  warningsAsErrors: false
+  unicode: true
 
-# Linux Configuration
+# Configuration macOS
+mac: 
+  icon: 'public/assets/images/icon.icns'
+  category: 'public.app-category.sports'
+  target: 'dmg'
+  artifactName: '${productName}-${version}.${ext}'
+  hardenedRuntime: true
+  gatekeeperAssess: false
+
+# Configuration Linux
 linux: 
-  icon: 'build/assets/images/icon.png'
-  target: 'AppImage'
-  maintainer: 'Guillaume Vandriessche'
-  vendor: 'Guillaume Vandriessche'
-  synopsis: 'VG-Timing'
-  description: 'Race timing application for motorsport enthusiasts'
-  category: 'Game'
+  icon: 'public/assets/images/icon.png'
+  target: 
+    - target: 'AppImage'
+      arch: 'x64'
+  maintainer: 'Guillaume Vandriessche <guillaumevandriessche776@gmail.com>'
+  vendor: 'VG-Timing'
+  synopsis: 'Application de chronométrage professionnel'
+  description: 'VG-Timing - Solution complète pour la gestion de courses et le chronométrage en temps réel avec intégration CrossMgr'
+  category: 'Office'
+  artifactName: '${productName}-${version}.${ext}'
 
-
+# Configuration des répertoires
 directories:
-  buildResources: 'build'
+  buildResources: 'public/assets'
   output: 'dist'
+
+# Configuration des métadonnées
+extraMetadata:
+  name: 'vg-timing'
+  productName: 'VG-Timing'
+  description: 'Application de chronométrage professionnel'
+
+# Configuration du processus de build
+beforeBuild: null
+afterSign: null
+beforePack: null
+afterPack: null
+
+# Configuration de la mise à jour automatique (si utilisée)
+publish:
+  provider: 'github'
+  owner: 'guillaumevd'
+  repo: 'vgtiming'
+  private: false

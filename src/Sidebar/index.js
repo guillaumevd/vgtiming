@@ -158,7 +158,7 @@ const Sidebar = (props) => {
   return (
     <Container>
       <LogoWrapper>
-        <Logo src="/assets/images/icon.png" alt="VG Timing" />
+        <Logo src="./assets/images/icon.png" alt="VG Timing" />
       </LogoWrapper>
       <SlickBar>
         <Item exact="true" to="/">

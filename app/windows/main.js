@@ -35,7 +35,9 @@ function createWindow() {
         resizable: true,
         frame: false,
         titleBarStyle: 'hidden',
-        icon: path.join(electron.app.getAppPath(), 'build', 'assets', 'images', 'icon') + `.${os.platform() === "win32" ? "ico" : "png"}`,
+        icon: isDev ? 
+            path.join(electron.app.getAppPath(), 'public', 'assets', 'images', 'icon') + `.${os.platform() === "win32" ? "ico" : "png"}` :
+            path.join(electron.app.getAppPath(), 'build', 'assets', 'images', 'icon') + `.${os.platform() === "win32" ? "ico" : "png"}`,
         show: false,
         webPreferences: {
             preload: preloadFile,
@@ -46,9 +48,8 @@ function createWindow() {
         },
     });
     
-    // Ouvrir DevTools seulement en développement et sur demande
+    // Ouvrir DevTools avec F12 uniquement en mode développement
     if (isDev) {
-        // Ouvrir DevTools avec F12
         mainWindow.webContents.on('before-input-event', (event, input) => {
             if (input.key === 'F12') {
                 mainWindow.webContents.toggleDevTools();
@@ -73,6 +74,7 @@ function createWindow() {
     } else {
         mainWindow.loadFile(path.join(electron.app.getAppPath(), 'build', 'index.html'));
     }
+    
     mainWindow.once('ready-to-show', () => {
         if (mainWindow) {
             mainWindow.show();

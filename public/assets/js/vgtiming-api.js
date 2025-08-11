@@ -29,9 +29,26 @@ class VGTimingAPI {
         this.isReady = true;
         console.log('✅ VG-Timing API initialized (Web Simulation):', this.isReady);
       }
+      
+      // Émettre un événement personnalisé quand l'API est prête
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('vgtiming-ready', { 
+          detail: { isReady: this.isReady, isElectronContext: this.isElectronContext } 
+        });
+        window.dispatchEvent(event);
+        console.log('📢 VG-Timing API: Événement vgtiming-ready émis');
+      }
     } catch (error) {
       console.error('❌ Failed to initialize VG-Timing API:', error);
       this.isReady = false;
+      
+      // Émettre l'événement même en cas d'erreur
+      if (typeof window !== 'undefined') {
+        const event = new CustomEvent('vgtiming-ready', { 
+          detail: { isReady: false, error: error.message } 
+        });
+        window.dispatchEvent(event);
+      }
     }
   }
 
