@@ -383,17 +383,17 @@ const Home = () => {
           </h3>
           <div className="status-grid">
             <div className="status-item">
-              <div className={`status-indicator ${isConnected ? 'status-connected' : 'status-disconnected'}`}></div>
+              <div className={`home-status-pill ${isConnected ? 'home-status-connected' : 'home-status-disconnected'}`}></div>
               <div className="status-label">CrossMgr</div>
               <div className="status-value">{getCrossMgrStatusText()}</div>
             </div>
             <div className="status-item">
-              <div className={`status-indicator ${systemStatus.database === 'connected' ? 'status-connected' : 'status-disconnected'}`}></div>
+              <div className={`home-status-pill ${systemStatus.database === 'connected' ? 'home-status-connected' : 'home-status-disconnected'}`}></div>
               <div className="status-label">Base de données</div>
               <div className="status-value">{getSystemStatusText(systemStatus.database)}</div>
             </div>
             <div className="status-item">
-              <div className={`status-indicator ${systemStatus.timing === 'ready' ? 'status-connected' : 'status-disconnected'}`}></div>
+              <div className={`home-status-pill ${systemStatus.timing === 'ready' ? 'home-status-connected' : 'home-status-disconnected'}`}></div>
               <div className="status-label">Chronométrage</div>
               <div className="status-value">{getSystemStatusText(systemStatus.timing)}</div>
             </div>

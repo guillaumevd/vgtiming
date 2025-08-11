@@ -240,58 +240,81 @@
 }
 
 .status-indicator {
-  position: relative;
-  width: 28px !important;
-  height: 28px !important;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
   margin-bottom: 0.5rem;
-  display: inline-block !important;
-  flex-shrink: 0;
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
 }
 
-.status-indicator::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
+/* Nouvelles pastilles rondes pour la page d'accueil */
+.home-status-pill {
   width: 28px;
   height: 28px;
   border-radius: 50%;
+  margin-bottom: 0.5rem;
+  display: inline-block;
+  position: relative;
   transition: all 0.3s ease;
 }
 
-.status-connected::before {
+.home-status-connected {
   background: #48bb78;
-  box-shadow: 0 0 20px rgba(72, 187, 120, 0.6);
-  animation: pulseGreen 2s infinite;
+  box-shadow: 0 0 15px rgba(72, 187, 120, 0.6);
+  animation: pulse-green 2s infinite;
 }
 
-.status-disconnected::before {
+.home-status-disconnected {
   background: #e53e3e;
-  box-shadow: 0 0 15px rgba(229, 62, 62, 0.5);
+  box-shadow: 0 0 10px rgba(229, 62, 62, 0.4);
 }
 
-.status-warning::before {
+.home-status-warning {
   background: #ed8936;
-  box-shadow: 0 0 15px rgba(237, 137, 54, 0.5);
+  box-shadow: 0 0 10px rgba(237, 137, 54, 0.4);
 }
 
-/* Animation de clignotement pour les statuts connectés */
-@keyframes pulseGreen {
+.home-status-waiting {
+  background: #4299e1;
+  box-shadow: 0 0 10px rgba(66, 153, 225, 0.4);
+  animation: pulse-blue 2s infinite;
+}
+
+/* Animation de clignotement pour le statut connecté (vert) */
+@keyframes pulse-green {
   0% {
-    box-shadow: 0 0 20px rgba(72, 187, 120, 0.5);
-    transform: scale(1);
+    box-shadow: 0 0 15px rgba(72, 187, 120, 0.6);
   }
   50% {
-    box-shadow: 0 0 35px rgba(72, 187, 120, 0.8);
-    transform: scale(1.15);
+    box-shadow: 0 0 25px rgba(72, 187, 120, 0.9);
+    transform: scale(1.1);
   }
   100% {
-    box-shadow: 0 0 20px rgba(72, 187, 120, 0.5);
-    transform: scale(1);
+    box-shadow: 0 0 15px rgba(72, 187, 120, 0.6);
   }
+}
+
+/* Animation pour le statut en attente (bleu) */
+@keyframes pulse-blue {
+  0% {
+    box-shadow: 0 0 10px rgba(66, 153, 225, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(66, 153, 225, 0.7);
+    transform: scale(1.05);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(66, 153, 225, 0.4);
+  }
+}
+
+.status-connected {
+  background: #68d391;
+  box-shadow: 0 0 10px rgba(104, 211, 145, 0.5);
+}
+
+.status-disconnected {
+  background: #fc8181;
+  box-shadow: 0 0 10px rgba(252, 129, 129, 0.5);
 }
 
 .status-label {

@@ -32,41 +32,50 @@ export const CrossMgrProvider = ({ children }) => {
     
     // Écouter les événements de changement d'état automatique
     const handleCrossMgrConnected = (event, data) => {
+      console.log('CrossMgr frontend: received connected event:', data);
       // Si c'est une vraie connexion établie (GT confirmé)
       if (data && data.established) {
+        console.log('CrossMgr frontend: connection already established');
         setConnectionStatus(CROSSMGR_STATUS.CONNECTED);
         setLastError(null);
       } else {
         // Sinon, c'est juste une connexion physique - passer en CONNECTING
+        console.log('CrossMgr frontend: physical connection, waiting for GT');
         setConnectionStatus(CROSSMGR_STATUS.CONNECTING);
       }
     };
 
     const handleCrossMgrConnectionEstablished = (event, data) => {
       // Connexion vraiment établie via GT
-      console.log('CrossMgr connection fully established (GT confirmed):', data);
+      console.log('CrossMgr frontend: connection fully established (GT confirmed):', data);
       setConnectionStatus(CROSSMGR_STATUS.CONNECTED);
       setLastError(null);
-      console.log('CrossMgr connection fully established:', data);
+      
+      // Aussi vérifier le statut pour s'assurer de la cohérence
+      setTimeout(() => {
+        checkConnectionStatus();
+      }, 100);
     };
 
     const handleCrossMgrDisconnected = (event, data) => {
+      console.log('CrossMgr frontend: received disconnected event:', data);
       // Distinguer déconnexion client vs arrêt serveur
       if (data?.serverStopped) {
         // Serveur VG-Timing arrêté = vraiment déconnecté
+        console.log('CrossMgr frontend: server stopped, fully disconnected');
         setConnectionStatus(CROSSMGR_STATUS.DISCONNECTED);
       } else {
         // Client CrossMgr déconnecté mais serveur en écoute = en attente de reconnexion
+        console.log('CrossMgr frontend: client disconnected, server still listening');
         setConnectionStatus(CROSSMGR_STATUS.CONNECTING);
       }
       setLastError(null);
-      console.log('CrossMgr disconnected:', data);
     };
 
     const handleCrossMgrError = (event, error) => {
+      console.log('CrossMgr frontend: received error event:', error);
       setConnectionStatus(CROSSMGR_STATUS.ERROR);
       setLastError(error?.message || 'Erreur de connexion');
-      console.log('CrossMgr error:', error);
     };
 
     const handleCrossMgrMessage = (event, messageData) => {
@@ -83,8 +92,6 @@ export const CrossMgrProvider = ({ children }) => {
       window.electronAPI.onCrossMgrError?.(handleCrossMgrError);
       window.electronAPI.onCrossMgrMessage?.(handleCrossMgrMessage);
     }
-
-    // Pas de refresh automatique - seulement au chargement initial
     
     return () => {
       // Nettoyer les listeners si ils existent
@@ -92,21 +99,55 @@ export const CrossMgrProvider = ({ children }) => {
     };
   }, []);
 
+  // Système de vérification périodique quand en CONNECTING
+  useEffect(() => {
+    let intervalId = null;
+    
+    if (connectionStatus === CROSSMGR_STATUS.CONNECTING) {
+      // Vérifier le statut toutes les 2 secondes quand en attente de connexion
+      console.log('CrossMgr frontend: starting periodic check while CONNECTING');
+      intervalId = setInterval(async () => {
+        console.log('CrossMgr frontend: periodic check...');
+        await checkConnectionStatus();
+      }, 2000);
+    }
+    
+    return () => {
+      if (intervalId) {
+        console.log('CrossMgr frontend: stopping periodic check');
+        clearInterval(intervalId);
+      }
+    };
+  }, [connectionStatus]);
+
   const checkConnectionStatus = async () => {
     try {
+      console.log('CrossMgr frontend: checking connection status...');
       const result = await window.electronAPI.crossmgrStatus();
       if (result.success && result.data) {
         const { isListening, isConnected } = result.data;
         const newStatus = isListening 
           ? (isConnected ? CROSSMGR_STATUS.CONNECTED : CROSSMGR_STATUS.CONNECTING)
           : CROSSMGR_STATUS.DISCONNECTED;
-        setConnectionStatus(newStatus);
+        
+        console.log(`CrossMgr frontend: status check result - listening: ${isListening}, connected: ${isConnected}, newStatus: ${newStatus}`);
+        
+        // Ne mettre à jour l'état que si il a vraiment changé
+        setConnectionStatus(prevStatus => {
+          if (prevStatus !== newStatus) {
+            console.log(`CrossMgr frontend: status changed from ${prevStatus} to ${newStatus}`);
+            return newStatus;
+          }
+          return prevStatus;
+        });
         setLastError(null);
       } else {
+        console.log('CrossMgr frontend: status check failed:', result.error);
         setConnectionStatus(CROSSMGR_STATUS.ERROR);
         setLastError(result.error || 'Erreur de statut');
       }
     } catch (error) {
+      console.log('CrossMgr frontend: status check error:', error);
       setConnectionStatus(CROSSMGR_STATUS.ERROR);
       setLastError(error.message);
     }
