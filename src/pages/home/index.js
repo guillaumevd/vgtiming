@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useCrossMgr } from '../../context/CrossMgrContext';
+import { getCachedLatestRelease } from '../../services/githubService';
 import './css/Home.css';
 
 const Home = () => {
@@ -20,6 +21,7 @@ const Home = () => {
 
   const [recentActivities, setRecentActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [releaseInfo, setReleaseInfo] = useState(null);
 
   // Utiliser le contexte CrossMgr pour le statut
   const { connectionStatus, getStatusText: getCrossMgrStatusText, isConnected } = useCrossMgr();
@@ -27,6 +29,7 @@ const Home = () => {
   useEffect(() => {
     loadDashboardData();
     loadRecentActivities();
+    loadReleaseInfo();
     
     // Auto-refresh supprimé pour éviter le spam de logs
     // Les données peuvent être rafraîchies manuellement si nécessaire
@@ -166,6 +169,22 @@ const Home = () => {
     }
   };
 
+  const loadReleaseInfo = async () => {
+    try {
+      const release = await getCachedLatestRelease();
+      setReleaseInfo(release);
+    } catch (error) {
+      console.warn('Erreur lors du chargement des informations de release:', error);
+      // Utiliser les informations par défaut en cas d'erreur
+      setReleaseInfo({
+        version: 'v0.0.4',
+        name: 'Version locale',
+        publishedAt: new Date(),
+        isLocal: true
+      });
+    }
+  };
+
   const getSystemStatusText = (status) => {
     switch (status) {
       case 'connected': return 'Connecté';
@@ -203,11 +222,22 @@ const Home = () => {
         </p>
         <div className="version-info">
           <span>📦</span>
-          Version 0.0.4 - Prêt pour le chronométrage
-          {stats.lastActivity && (
-            <span style={{ marginLeft: '2rem', opacity: 0.8 }}>
-              Dernière activité: {stats.lastActivity.toLocaleDateString('fr-FR')} à {stats.lastActivity.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
-            </span>
+          {releaseInfo ? (
+            <>
+              Version {releaseInfo.version} - {releaseInfo.name}
+              <span style={{ marginLeft: '2rem', opacity: 0.8 }}>
+                Dernière activité: {releaseInfo.publishedAt.toLocaleDateString('fr-FR')} à {releaseInfo.publishedAt.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </>
+          ) : (
+            <>
+              Version 0.0.4 - Chargement...
+              {stats.lastActivity && (
+                <span style={{ marginLeft: '2rem', opacity: 0.8 }}>
+                  Dernière activité: {stats.lastActivity.toLocaleDateString('fr-FR')} à {stats.lastActivity.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              )}
+            </>
           )}
         </div>
         {loading && (

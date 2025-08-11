@@ -10,3 +10,6 @@ export * from './dataUtils';
 
 // API utilities
 export * from './apiUtils';
+
+// GitHub service
+export * from '../services/githubService';

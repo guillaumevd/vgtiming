@@ -240,20 +240,58 @@
 }
 
 .status-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+  position: relative;
+  width: 28px !important;
+  height: 28px !important;
   margin-bottom: 0.5rem;
+  display: inline-block !important;
+  flex-shrink: 0;
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
 }
 
-.status-connected {
-  background: #68d391;
-  box-shadow: 0 0 10px rgba(104, 211, 145, 0.5);
+.status-indicator::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  transition: all 0.3s ease;
 }
 
-.status-disconnected {
-  background: #fc8181;
-  box-shadow: 0 0 10px rgba(252, 129, 129, 0.5);
+.status-connected::before {
+  background: #48bb78;
+  box-shadow: 0 0 20px rgba(72, 187, 120, 0.6);
+  animation: pulseGreen 2s infinite;
+}
+
+.status-disconnected::before {
+  background: #e53e3e;
+  box-shadow: 0 0 15px rgba(229, 62, 62, 0.5);
+}
+
+.status-warning::before {
+  background: #ed8936;
+  box-shadow: 0 0 15px rgba(237, 137, 54, 0.5);
+}
+
+/* Animation de clignotement pour les statuts connectés */
+@keyframes pulseGreen {
+  0% {
+    box-shadow: 0 0 20px rgba(72, 187, 120, 0.5);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(72, 187, 120, 0.8);
+    transform: scale(1.15);
+  }
+  100% {
+    box-shadow: 0 0 20px rgba(72, 187, 120, 0.5);
+    transform: scale(1);
+  }
 }
 
 .status-label {
