@@ -33,6 +33,9 @@ const TimingSidebar = ({
   const getRaceStatusIcon = (status) => {
     switch (status) {
       case 'running': return '🏃';
+      case 'in_progress': return '🏃';
+      case 'active': return '🏃';
+      case 'finishing': return '🏁';
       case 'paused': return '⏸️';
       case 'finished': return '🏁';
       case 'ready': return '⚡';
@@ -105,6 +108,9 @@ const TimingSidebar = ({
               <div className="status-card-body">
                 <div className={`status-badge status-badge-${raceStatus}`}>
                   {raceStatus === 'running' && 'En cours'}
+                  {raceStatus === 'in_progress' && 'En cours'}
+                  {raceStatus === 'active' && 'En cours'}
+                  {raceStatus === 'finishing' && 'En cours de finition'}
                   {raceStatus === 'paused' && 'En pause'}
                   {raceStatus === 'finished' && 'Terminée'}
                   {raceStatus === 'ready' && 'Prête'}

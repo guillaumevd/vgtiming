@@ -328,9 +328,18 @@ const Timing = () => {
       
       console.log('✅ Course démarrée avec succès:', result.data);
       
-      // Mettre à jour l'état local
-      setRaceStatus('running');
-      setSelectedRace({...selectedRace, status: 'in_progress'});
+      // Récupérer immédiatement le statut à jour depuis le backend
+      const currentRaceResult = await window.VGTiming.getRaceById(selectedRace.id);
+      if (currentRaceResult.success) {
+        const updatedRace = currentRaceResult.data;
+        setRaceStatus(updatedRace.status);
+        setSelectedRace({...selectedRace, status: updatedRace.status});
+        console.log('✅ Statut mis à jour:', updatedRace.status);
+      } else {
+        // Fallback si on n'arrive pas à récupérer la course
+        setRaceStatus('in_progress');
+        setSelectedRace({...selectedRace, status: 'in_progress'});
+      }
       
       // Démarrer le rafraîchissement temps réel
       startTimingRefresh();
@@ -544,6 +553,7 @@ const Timing = () => {
         <div className="timing-status">
           <span className={`status-badge status-${raceStatus}`}>
             {raceStatus === 'active' && 'En cours'}
+            {raceStatus === 'in_progress' && 'En cours'}
             {raceStatus === 'finishing' && 'En cours de finition'}
             {raceStatus === 'paused' && 'En pause'}
             {raceStatus === 'finished' && 'Terminé'}

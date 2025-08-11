@@ -58,6 +58,12 @@
   border: 1px solid #48bb78;
 }
 
+.status-badge.status-in_progress {
+  background: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid #48bb78;
+}
+
 .status-badge.status-finishing {
   background: rgba(255, 179, 71, 0.2);
   color: #f56500;
@@ -689,6 +695,24 @@
   animation: running-glow 3s ease-in-out infinite alternate;
 }
 
+.status-card.race-in_progress {
+  border-color: #48bb78;
+  background: linear-gradient(135deg, #1a202c 0%, rgba(72, 187, 120, 0.1) 100%);
+  animation: running-glow 3s ease-in-out infinite alternate;
+}
+
+.status-card.race-active {
+  border-color: #48bb78;
+  background: linear-gradient(135deg, #1a202c 0%, rgba(72, 187, 120, 0.1) 100%);
+  animation: running-glow 3s ease-in-out infinite alternate;
+}
+
+.status-card.race-finishing {
+  border-color: #f56500;
+  background: linear-gradient(135deg, #1a202c 0%, rgba(255, 179, 71, 0.1) 100%);
+  animation: finishing-glow 3s ease-in-out infinite alternate;
+}
+
 .status-card.race-paused {
   border-color: #ed8936;
   background: linear-gradient(135deg, #1a202c 0%, rgba(237, 137, 54, 0.1) 100%);
@@ -712,6 +736,11 @@
 @keyframes running-glow {
   0% { box-shadow: 0 0 5px rgba(72, 187, 120, 0.3); }
   100% { box-shadow: 0 0 20px rgba(72, 187, 120, 0.6); }
+}
+
+@keyframes finishing-glow {
+  0% { box-shadow: 0 0 5px rgba(255, 179, 71, 0.3); }
+  100% { box-shadow: 0 0 20px rgba(255, 179, 71, 0.6); }
 }
 
 .status-card-header {
@@ -781,6 +810,24 @@
   background: rgba(72, 187, 120, 0.2);
   color: #48bb78;
   border: 1px solid #48bb78;
+}
+
+.status-badge-in_progress {
+  background: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid #48bb78;
+}
+
+.status-badge-active {
+  background: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid #48bb78;
+}
+
+.status-badge-finishing {
+  background: rgba(255, 179, 71, 0.2);
+  color: #f56500;
+  border: 1px solid #f56500;
 }
 
 .status-badge-paused {
