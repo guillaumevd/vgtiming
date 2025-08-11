@@ -8,10 +8,9 @@ class AppIPCHandler {
   }
 
   registerHandlers() {
-    // Ping simple pour vérifier la disponibilité du backend
+        // Ping du backend pour vérifier la connexion
     ipcMain.handle('app:ping', async (event) => {
       try {
-        // Ping simple - si on arrive ici, le backend IPC fonctionne
         return { 
           success: true, 
           data: { 
@@ -21,6 +20,21 @@ class AppIPCHandler {
         };
       } catch (error) {
         logger.error('Erreur lors du ping backend:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // DIAGNOSTIC: Signal de réception des événements CrossMgr côté frontend
+    ipcMain.handle('debug:frontend-received-crossmgr', async (event, data) => {
+      try {
+        logger.info('🎯 DIAGNOSTIC: Frontend a reçu un événement CrossMgr!', { 
+          timestamp: data.timestamp, 
+          epcTag: data.data?.epcTag,
+          passingTime: data.data?.passingTime 
+        });
+        return { success: true };
+      } catch (error) {
+        logger.error('Erreur lors du diagnostic frontend:', error);
         return { success: false, error: error.message };
       }
     });

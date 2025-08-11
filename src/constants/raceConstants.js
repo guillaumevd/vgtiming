@@ -31,9 +31,9 @@ export const RACE_STATUS = {
 
 // Duration types
 export const DURATION_TYPES = {
-  MINUTES: 'minutes',
-  HOURS: 'hours',
-  LAPS: 'laps'
+  TIME: 'Temps',
+  DISTANCE: 'Distance', 
+  LAPS: 'Tours'
 };
 
 // Default race settings

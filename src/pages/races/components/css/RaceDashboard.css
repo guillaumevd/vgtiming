@@ -584,3 +584,262 @@
     flex-direction: column;
   }
 }
+
+/* Styles pour les résultats finaux */
+.final-results {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.results-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+.summary-stat {
+  text-align: center;
+  padding: 1rem;
+  background: #1a202c;
+  border-radius: 8px;
+  border: 1px solid #4a5568;
+}
+
+.summary-stat .stat-value {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  color: #63b3ed;
+  margin-bottom: 0.5rem;
+}
+
+.summary-stat .stat-label {
+  font-size: 0.875rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.results-table {
+  overflow-x: auto;
+  margin-top: 1rem;
+}
+
+.results-table table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #1a202c;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.results-table th {
+  background: #4a5568;
+  color: #e2e8f0;
+  padding: 1rem 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #2d3748;
+}
+
+.results-table td {
+  padding: 0.875rem 0.75rem;
+  border-bottom: 1px solid #4a5568;
+  color: #e2e8f0;
+}
+
+.result-row:nth-child(even) {
+  background: #2d3748;
+}
+
+.result-row:hover {
+  background: #4a5568;
+  transition: background-color 0.2s ease;
+}
+
+.result-row.finished {
+  border-left: 4px solid #48bb78;
+}
+
+.result-row.running {
+  border-left: 4px solid #ed8936;
+}
+
+.result-row.dnf {
+  border-left: 4px solid #f56565;
+  opacity: 0.7;
+}
+
+.result-row.dns {
+  border-left: 4px solid #a0aec0;
+  opacity: 0.7;
+}
+
+.position {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #63b3ed;
+  text-align: center;
+  width: 60px;
+}
+
+.bib-number {
+  font-weight: 600;
+  color: #ed8936;
+  text-align: center;
+  width: 80px;
+}
+
+.participant-name {
+  font-weight: 600;
+  min-width: 150px;
+}
+
+.category {
+  color: #a0aec0;
+  font-size: 0.875rem;
+}
+
+.laps {
+  text-align: center;
+  font-weight: 600;
+}
+
+.total-time,
+.gap,
+.best-lap {
+  font-family: 'Courier New', monospace;
+  text-align: right;
+  font-weight: 600;
+}
+
+.total-time {
+  color: #63b3ed;
+}
+
+.gap {
+  color: #a0aec0;
+}
+
+.best-lap {
+  color: #68d391;
+}
+
+.status {
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.status.finished {
+  color: #48bb78;
+}
+
+.status.running {
+  color: #ed8936;
+}
+
+.status.dnf {
+  color: #f56565;
+}
+
+.status.dns {
+  color: #a0aec0;
+}
+
+/* Styles pour le timing en direct */
+.live-timing {
+  background: #2d3748;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+}
+
+.timing-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.timing-stats .stat {
+  text-align: center;
+  padding: 1rem;
+  background: #1a202c;
+  border-radius: 8px;
+  border: 1px solid #4a5568;
+}
+
+.timing-stats .stat-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #ed8936;
+  margin-bottom: 0.5rem;
+}
+
+.timing-stats .stat-label {
+  font-size: 0.75rem;
+  color: #a0aec0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.go-to-timing {
+  text-align: center;
+  padding: 2rem 1rem;
+}
+
+.go-to-timing p {
+  margin-bottom: 1rem;
+  color: #a0aec0;
+  font-size: 1.1rem;
+}
+
+.race-button.large {
+  font-size: 1.1rem;
+  padding: 0.875rem 2rem;
+}
+
+/* Responsive pour les résultats */
+@media (max-width: 768px) {
+  .results-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .results-table {
+    font-size: 0.875rem;
+  }
+  
+  .results-table th,
+  .results-table td {
+    padding: 0.5rem 0.375rem;
+  }
+  
+  .participant-name {
+    min-width: unset;
+  }
+}
+
+@media (max-width: 480px) {
+  .results-summary {
+    grid-template-columns: 1fr;
+  }
+  
+  .results-table {
+    font-size: 0.75rem;
+  }
+  
+  .summary-stat .stat-value {
+    font-size: 1.5rem;
+  }
+}

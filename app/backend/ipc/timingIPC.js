@@ -127,6 +127,18 @@ class TimingIPCHandler {
       logger.debug('IPC: timing:getCurrentTime', { raceId, bibNumber });
       return await this.timingController.getParticipantCurrentTime(raceId, bibNumber);
     });
+
+    // Vérifier conditions de fin de course
+    ipcMain.handle('timing:checkFinishConditions', async (event, raceId) => {
+      logger.debug('IPC: timing:checkFinishConditions', { raceId });
+      return await this.timingController.checkRaceFinishConditions(raceId);
+    });
+
+    // Terminer automatiquement une course
+    ipcMain.handle('timing:autoFinish', async (event, raceId, reason) => {
+      logger.debug('IPC: timing:autoFinish', { raceId, reason });
+      return await this.timingController.autoFinishRace(raceId, reason);
+    });
   }
 
   unregisterHandlers() {
@@ -136,7 +148,8 @@ class TimingIPCHandler {
       'timing:calculatePositions', 'timing:getRanking', 'timing:getStats',
       'timing:startMass', 'timing:getRunning', 'timing:getFinished',
       'timing:exportResults', 'timing:resetParticipant', 'timing:resetRace',
-      'timing:getPassings', 'timing:getCurrentTime'
+      'timing:getPassings', 'timing:getCurrentTime', 'timing:checkFinishConditions',
+      'timing:autoFinish'
     ];
 
     handlers.forEach(handler => {

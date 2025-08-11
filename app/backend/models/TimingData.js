@@ -1,5 +1,6 @@
 const { generateId } = require('../utils/helpers');
 const { TIMING_STATUS } = require('../utils/constants');
+const logger = require('../utils/logger');
 
 class TimingData {
   constructor(db) {
@@ -242,13 +243,33 @@ class TimingData {
     const timing = this.findById(id);
     if (!timing) return null;
 
-    const finish = finishTime || new Date().toISOString();
+    let finish = finishTime;
+    
+    // S'assurer que finishTime est une chaîne ISO ou null
+    if (finishTime && typeof finishTime !== 'string') {
+      if (finishTime instanceof Date) {
+        finish = finishTime.toISOString();
+        logger.warn(`finishTiming: Conversion d'un objet Date en chaîne ISO pour id=${id}`);
+      } else {
+        logger.error(`finishTiming: Type invalide pour finishTime (${typeof finishTime}), utilisation de la date actuelle`);
+        finish = new Date().toISOString();
+      }
+    } else if (!finish) {
+      finish = new Date().toISOString();
+    }
+    
     let totalTime = null;
 
     if (timing.startTime) {
       const startMs = new Date(timing.startTime).getTime();
       const finishMs = new Date(finish).getTime();
-      totalTime = finishMs - startMs;
+      
+      // Vérifier que les dates sont valides
+      if (!isNaN(startMs) && !isNaN(finishMs) && finishMs >= startMs) {
+        totalTime = finishMs - startMs;
+      } else {
+        logger.warn(`Dates invalides pour le calcul du temps total: startTime=${timing.startTime}, finishTime=${finish}`);
+      }
     }
 
     return this.update(id, {

@@ -27,9 +27,23 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
         setParticipants([]);
       }
 
-      // TODO: Charger les données de chronométrage quand l'API sera disponible
-      // const timingResult = await window.VGTiming.getTimingDataByRace(race.id);
-      setTimingData([]);
+      // Charger les données de chronométrage si la course est en cours ou terminée
+      if (race.status === 'in_progress' || race.status === 'finished') {
+        try {
+          const timingResult = await window.VGTiming.getTimingDataByRace(race.id);
+          if (timingResult.success) {
+            setTimingData(timingResult.data || []);
+          } else {
+            console.error('Error loading timing data:', timingResult.error);
+            setTimingData([]);
+          }
+        } catch (timingError) {
+          console.error('Error loading timing data:', timingError);
+          setTimingData([]);
+        }
+      } else {
+        setTimingData([]);
+      }
 
     } catch (error) {
       console.error('Erreur lors du chargement des données:', error);
@@ -383,23 +397,169 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
           )}
         </div>
 
-        {/* Section chronométrage (future) */}
+        {/* Section chronométrage/résultats */}
         <div className="dashboard-section">
           <div className="section-header">
-            <h2>Chronométrage</h2>
-            <button
-              className="race-button primary"
-              onClick={() => onGoToTiming(race)}
-            >
+            <h2>
+              {raceData.status === 'finished' ? 'Résultats finaux' : 'Chronométrage'}
+            </h2>
+            {raceData.status !== 'finished' && (
+              <button
+                className="race-button primary"
+                onClick={() => onGoToTiming(race)}
+              >
+                <i className="fas fa-stopwatch"></i>
+                Aller au chronométrage
+              </button>
+            )}
+            {raceData.status === 'finished' && timingData.length > 0 && (
+              <button
+                className="race-button secondary"
+                onClick={() => window.print()}
+              >
+                <i className="fas fa-print"></i>
+                Imprimer les résultats
+              </button>
+            )}
+          </div>
+
+          {raceData.status === 'finished' && timingData.length > 0 ? (
+            // Affichage des résultats finaux
+            <div className="final-results">
+              <div className="results-summary">
+                <div className="summary-stat">
+                  <span className="stat-value">{timingData.length}</span>
+                  <span className="stat-label">Participants classés</span>
+                </div>
+                <div className="summary-stat">
+                  <span className="stat-value">
+                    {timingData.filter(p => p.status === 'finished').length}
+                  </span>
+                  <span className="stat-label">Terminés</span>
+                </div>
+                <div className="summary-stat">
+                  <span className="stat-value">
+                    {timingData.filter(p => p.status === 'running').length}
+                  </span>
+                  <span className="stat-label">En cours</span>
+                </div>
+                {raceData.finishedAt && (
+                  <div className="summary-stat">
+                    <span className="stat-value">
+                      {new Date(raceData.finishedAt).toLocaleTimeString('fr-FR')}
+                    </span>
+                    <span className="stat-label">Course terminée</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="results-table">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Pos.</th>
+                      <th>Dossard</th>
+                      <th>Nom</th>
+                      <th>Catégorie</th>
+                      <th>Tours</th>
+                      <th>Temps total</th>
+                      <th>Écart</th>
+                      <th>Meilleur tour</th>
+                      <th>Statut</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {timingData
+                      .sort((a, b) => (a.position || 999) - (b.position || 999))
+                      .map((participant, index) => (
+                      <tr key={participant.id || index} className={`result-row ${participant.status}`}>
+                        <td className="position">
+                          {participant.position || '-'}
+                        </td>
+                        <td className="bib-number">
+                          {participant.bibNumber || participant.number}
+                        </td>
+                        <td className="participant-name">
+                          {participant.participantName || participant.name}
+                        </td>
+                        <td className="category">
+                          {participant.category || '-'}
+                        </td>
+                        <td className="laps">
+                          {participant.laps || participant.lapCount || 0}
+                        </td>
+                        <td className="total-time">
+                          {participant.totalTime || participant.elapsedTime || '-'}
+                        </td>
+                        <td className="gap">
+                          {participant.gap || '-'}
+                        </td>
+                        <td className="best-lap">
+                          {participant.bestLapTime || '-'}
+                        </td>
+                        <td className={`status ${participant.status || 'unknown'}`}>
+                          {participant.status === 'finished' && '✓ Terminé'}
+                          {participant.status === 'running' && '⏱️ En cours'}
+                          {participant.status === 'dnf' && '❌ DNF'}
+                          {participant.status === 'dns' && '⏸️ DNS'}
+                          {!participant.status && '❓ Inconnu'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : raceData.status === 'in_progress' && timingData.length > 0 ? (
+            // Affichage pendant la course
+            <div className="live-timing">
+              <div className="timing-stats">
+                <div className="stat">
+                  <span className="stat-value">{timingData.length}</span>
+                  <span className="stat-label">Participants en course</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-value">
+                    {timingData.filter(p => p.status === 'running').length}
+                  </span>
+                  <span className="stat-label">En cours</span>
+                </div>
+                <div className="stat">
+                  <span className="stat-value">
+                    {timingData.filter(p => p.status === 'finished').length}
+                  </span>
+                  <span className="stat-label">Terminés</span>
+                </div>
+              </div>
+              <div className="go-to-timing">
+                <p>Course en cours - Suivez le chronométrage en temps réel</p>
+                <button
+                  className="race-button primary large"
+                  onClick={() => onGoToTiming(race)}
+                >
+                  <i className="fas fa-stopwatch"></i>
+                  Voir le chronométrage en direct
+                </button>
+              </div>
+            </div>
+          ) : (
+            // État vide
+            <div className="empty-state">
               <i className="fas fa-stopwatch"></i>
-              Aller au chronométrage
-            </button>
-          </div>
-          <div className="empty-state">
-            <i className="fas fa-stopwatch"></i>
-            <p>Aucune donnée de chronométrage</p>
-            <small>Les données apparaîtront lors de la course</small>
-          </div>
+              <p>
+                {raceData.status === 'finished' 
+                  ? 'Aucun résultat disponible' 
+                  : 'Aucune donnée de chronométrage'
+                }
+              </p>
+              <small>
+                {raceData.status === 'finished' 
+                  ? 'La course est terminée mais aucun résultat n\'a été enregistré' 
+                  : 'Les données apparaîtront lors de la course'
+                }
+              </small>
+            </div>
+          )}
         </div>
       </div>
     </div>

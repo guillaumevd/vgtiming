@@ -332,6 +332,38 @@ class VGTimingAPI {
     return await window.electronAPI.invoke('timing:getRunning', raceId);
   }
 
+  async checkRaceFinishConditions(raceId) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      return this.simulateResponse({ 
+        shouldFinish: false,
+        reason: null,
+        raceId,
+        raceName: 'Course Test'
+      });
+    }
+    
+    return await window.electronAPI.invoke('timing:checkFinishConditions', raceId);
+  }
+
+  async autoFinishRace(raceId, reason) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      console.log('Mode web dev - Fin automatique simulée pour course:', raceId, reason);
+      return this.simulateResponse({ 
+        raceId, 
+        raceName: 'Course Test',
+        status: 'finished',
+        finishedAt: new Date().toISOString(),
+        finishReason: reason
+      });
+    }
+    
+    return await window.electronAPI.invoke('timing:autoFinish', raceId, reason);
+  }
+
   // ===== SETTINGS =====
 
   async getSetting(key) {

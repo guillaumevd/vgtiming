@@ -282,6 +282,32 @@ class TimingController {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * Vérifier les conditions de fin de course
+   */
+  async checkRaceFinishConditions(raceId) {
+    try {
+      const result = await this.timingService.checkRaceFinishConditions(raceId);
+      return { success: true, data: result };
+    } catch (error) {
+      logger.error('TimingController.checkRaceFinishConditions:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Terminer automatiquement une course
+   */
+  async autoFinishRace(raceId, reason) {
+    try {
+      const result = await this.timingService.autoFinishRace(raceId, reason);
+      return { success: true, data: result };
+    } catch (error) {
+      logger.error('TimingController.autoFinishRace:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 module.exports = TimingController;

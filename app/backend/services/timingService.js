@@ -532,6 +532,13 @@ class TimingService {
       // Recalculer les positions après chaque passage
       await this.calculatePositions(raceId, timingData.category);
       
+      // Vérifier les conditions de fin de course après chaque passage
+      setTimeout(() => {
+        this.checkRaceFinishConditions(raceId).catch(error => {
+          logger.error(`Erreur lors de la vérification de fin de course ${raceId}:`, error);
+        });
+      }, 1000); // Petit délai pour laisser le temps aux calculs de positions
+      
       logger.info(`Passage CrossMgr enregistré pour ${timingData.participantName} (#${bibNumber}) - Temps écoulé: ${elapsedTime ? (elapsedTime/1000).toFixed(1) + 's' : 'N/A'}`);
       return updatedTiming;
     } catch (error) {
@@ -872,43 +879,174 @@ class TimingService {
     }
   }
 
-  /**
+    /**
    * Obtenir le temps en cours d'un participant
    */
   async getParticipantCurrentTime(raceId, bibNumber) {
     try {
       const timingData = this.timingDataModel.findByBibNumber(raceId, bibNumber);
-      if (!timingData || !timingData.startTime) {
+      if (!timingData) {
         return null;
       }
 
-      const startTime = new Date(timingData.startTime).getTime();
-      
-      if (timingData.finishTime) {
-        // Participant terminé
+      const currentTime = new Date();
+
+      if (timingData.status === TIMING_STATUS.RUNNING && timingData.startTime) {
+        const startTime = new Date(timingData.startTime);
+        const elapsedTime = currentTime.getTime() - startTime.getTime();
+
         return {
-          status: 'finished',
-          totalTime: timingData.totalTime,
-          formattedTime: formatTime(timingData.totalTime)
-        };
-      } else if (timingData.status === TIMING_STATUS.RUNNING) {
-        // Participant en cours
-        const currentTime = Date.now() - startTime;
-        return {
-          status: 'running',
-          currentTime,
-          formattedTime: formatTime(currentTime)
-        };
-      } else {
-        return {
-          status: timingData.status,
-          totalTime: null,
-          formattedTime: '--:--:--'
+          status: TIMING_STATUS.RUNNING,
+          elapsedTime: this.formatTimeFromMs(elapsedTime),
+          elapsedTimeMs: elapsedTime,
+          startTime: timingData.startTime,
+          participant: {
+            name: timingData.participantName,
+            bibNumber: timingData.bibNumber,
+            category: timingData.category
+          }
         };
       }
     } catch (error) {
       logger.error(`Erreur lors de la récupération du temps courant pour le dossard ${bibNumber} dans la course ${raceId}:`, error);
       return null;
+    }
+  }
+
+  /**
+   * Vérifier si une course doit être automatiquement terminée
+   */
+  async checkRaceFinishConditions(raceId) {
+    try {
+      const race = this.raceModel.findById(raceId);
+      if (!race || race.status !== 'in_progress') {
+        return { shouldFinish: false };
+      }
+
+      logger.debug(`Vérification conditions fin de course pour: ${race.name}`);
+
+      // Obtenir le temps de départ de la course (GT)
+      const raceStartTime = this.raceStartTimes.get(raceId);
+      if (!raceStartTime) {
+        logger.debug(`Pas de temps de départ GT pour la course ${raceId}`);
+        return { shouldFinish: false };
+      }
+
+      const now = new Date();
+      // Convertir raceStartTime en Date s'il s'agit d'une chaîne ou d'un timestamp
+      const startTimeDate = new Date(raceStartTime);
+      const elapsedTimeMs = now.getTime() - startTimeDate.getTime();
+      const elapsedTimeMinutes = Math.floor(elapsedTimeMs / (1000 * 60));
+
+      logger.debug(`Course ${race.name}: temps écoulé = ${elapsedTimeMinutes} min, durée prévue = ${race.duration} ${race.durationType}`);
+
+      let shouldFinish = false;
+      let reason = '';
+
+      // Vérification selon le type de durée
+      if (race.durationType === 'Temps' && race.duration) {
+        // Course en temps : vérifier si le temps est écoulé
+        if (elapsedTimeMinutes >= race.duration) {
+          shouldFinish = true;
+          reason = `Temps de course écoulé (${race.duration} minutes)`;
+        }
+      } else if (race.durationType === 'Tours' && race.duration) {
+        // Course en nombre de tours : vérifier si un participant a terminé le nombre requis
+        const timingData = this.timingDataModel.findByRace(raceId);
+        
+        let maxLaps = 0;
+        timingData.forEach(participant => {
+          try {
+            const passings = this.safeParsePassings(participant.passings);
+            const lapCount = passings.length;
+            if (lapCount > maxLaps) {
+              maxLaps = lapCount;
+            }
+          } catch (e) {
+            logger.warn(`Erreur parsing passings pour participant ${participant.id}:`, e);
+          }
+        });
+
+        logger.debug(`Tours maximum atteint: ${maxLaps}/${race.duration}`);
+        
+        if (maxLaps >= race.duration) {
+          shouldFinish = true;
+          reason = `Nombre de tours atteint (${race.duration} tours)`;
+        }
+      }
+
+      if (shouldFinish) {
+        logger.info(`🏁 Condition de fin de course remplie: ${reason}`);
+        
+        // Auto-terminer la course
+        await this.autoFinishRace(raceId, reason);
+        
+        return { 
+          shouldFinish: true, 
+          reason,
+          raceId,
+          raceName: race.name
+        };
+      }
+
+      return { shouldFinish: false };
+      
+    } catch (error) {
+      logger.error(`Erreur lors de la vérification des conditions de fin de course ${raceId}:`, error);
+      return { shouldFinish: false, error: error.message };
+    }
+  }
+
+  /**
+   * Terminer automatiquement une course
+   */
+  async autoFinishRace(raceId, reason) {
+    try {
+      const race = this.raceModel.findById(raceId);
+      if (!race) {
+        throw new Error('Course non trouvée');
+      }
+
+      logger.info(`🏁 Fin automatique de la course: ${race.name} - Raison: ${reason}`);
+
+      // Calculer les positions finales
+      await this.calculatePositions(raceId);
+
+      // Marquer tous les participants encore en course comme terminés
+      const runningParticipants = this.timingDataModel.findByRace(raceId, { status: TIMING_STATUS.RUNNING });
+      runningParticipants.forEach(participant => {
+        this.timingDataModel.finishTiming(participant.id, new Date().toISOString());
+        logger.debug(`Participant ${participant.participantName} (#${participant.bibNumber}) marqué comme terminé automatiquement`);
+      });
+
+      // Recalculer les positions finales après marquage des terminés
+      await this.calculatePositions(raceId);
+
+      // Changer le statut de la course
+      const updatedRace = this.raceModel.update(raceId, { 
+        status: 'finished',
+        finishedAt: new Date().toISOString(),
+        finishReason: reason
+      });
+
+      logger.info(`✅ Course terminée automatiquement: ${race.name}`);
+
+      // Émettre un événement pour notifier le frontend
+      if (this.crossmgrService && this.crossmgrService.mainWindow && !this.crossmgrService.mainWindow.isDestroyed()) {
+        this.crossmgrService.mainWindow.webContents.send('race:auto_finished', {
+          raceId,
+          raceName: race.name,
+          reason,
+          finishedAt: new Date().toISOString()
+        });
+        logger.debug('Événement race:auto_finished envoyé au frontend');
+      }
+
+      return updatedRace;
+      
+    } catch (error) {
+      logger.error(`Erreur lors de la fin automatique de course ${raceId}:`, error);
+      throw error;
     }
   }
 }

@@ -58,12 +58,16 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onCrossMgrMessage: (callback) => {
     ipcRenderer.on('crossmgr:message', callback);
   },
+  onRaceAutoFinished: (callback) => {
+    ipcRenderer.on('race:auto_finished', callback);
+  },
   removeCrossMgrListeners: () => {
     ipcRenderer.removeAllListeners('crossmgr:connected');
     ipcRenderer.removeAllListeners('crossmgr:connection_established');
     ipcRenderer.removeAllListeners('crossmgr:disconnected');
     ipcRenderer.removeAllListeners('crossmgr:error');
     ipcRenderer.removeAllListeners('crossmgr:message');
+    ipcRenderer.removeAllListeners('race:auto_finished');
   }
 });
 
