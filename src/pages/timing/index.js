@@ -87,7 +87,7 @@ const Timing = () => {
             const getCurrentRace = async () => {
               try {
                 // Récupérer les courses actives via l'API
-                const racesResult = await window.electronAPI.invoke('race:getAll', { status: ['active', 'in_progress', 'finishing'] });
+                const racesResult = await window.electronAPI.invoke('race:getAll', { status: ['active', 'in_progress', 'finishing', 'finished'] });
                 if (racesResult.success && racesResult.data && racesResult.data.length > 0) {
                   const currentRace = racesResult.data[0]; // Prendre la première course active
                   console.log('🏃 Course actuelle (API):', currentRace?.id, currentRace?.name, 'status:', currentRace?.status);
@@ -176,8 +176,11 @@ const Timing = () => {
           if (data && (data.epcTag || data.passingTime)) {
             console.log('🏃 Passage via événement personnalisé, actualisation');
             setTimeout(() => {
+              console.log('🔄 Déclenchement refreshTimingData à cause d\'un passage');
               refreshTimingData();
             }, 500);
+          } else {
+            console.log('⚠️ Données événement crossmgr-message manquantes:', data);
           }
         });
 
@@ -448,7 +451,7 @@ const Timing = () => {
   const refreshTimingData = async () => {
     try {
       // Récupérer dynamiquement la course active au lieu d'utiliser selectedRace (évite les problèmes de closure)
-      const racesResult = await window.electronAPI.invoke('race:getAll', { status: ['active', 'in_progress', 'finishing'] });
+      const racesResult = await window.electronAPI.invoke('race:getAll', { status: ['active', 'in_progress', 'finishing', 'finished'] });
       if (!racesResult.success || !racesResult.data || racesResult.data.length === 0) {
         console.log('❌ refreshTimingData: Pas de course active trouvée');
         return;
@@ -458,10 +461,13 @@ const Timing = () => {
       console.log('🔄 Rafraîchissement des données timing pour course:', currentRace.id, currentRace.name, 'status:', currentRace.status);
       
       // Charger les statistiques de chronométrage via IPC
+      console.log('📊 Appel timing:getStats avec ID:', currentRace.id);
       const statsResult = await window.electronAPI.invoke('timing:getStats', currentRace.id);
       if (statsResult.success) {
         setTimingStats(statsResult.data);
         console.log('📊 Stats timing récupérées:', statsResult.data);
+      } else {
+        console.error('❌ Erreur lors de la récupération des stats:', statsResult.error);
       }
       
       // Charger les données de chronométrage mises à jour via IPC
@@ -561,7 +567,12 @@ const Timing = () => {
             {raceStatus === 'draft' && 'Brouillon'}
           </span>
           {selectedRace && (
-            <span className="race-name">{selectedRace.name}</span>
+            <>
+              <span className="race-name">{selectedRace.name}</span>
+              {(raceStatus === 'in_progress' || raceStatus === 'active' || raceStatus === 'finishing' || raceStatus === 'paused') && (
+                <span className="elapsed-time">⏱️ {timingStats.elapsedTime || '00:00:00'}</span>
+              )}
+            </>
           )}
         </div>
       </div>

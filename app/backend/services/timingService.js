@@ -435,7 +435,7 @@ class TimingService {
       }
 
       // Empêcher les participants déjà terminés d'enregistrer de nouveaux passages
-      if (timingData.status === 'finished') {
+      if (timingData.status === TIMING_STATUS.FINISHED) {
         logger.warn(`🚫 Tentative de passage pour ${timingData.participantName} (#${bibNumber}) qui est déjà terminé - Passage ignoré`);
         return timingData; // Retourner les données existantes sans modification
       }
@@ -467,7 +467,7 @@ class TimingService {
       }
 
       // Empêcher les participants déjà terminés d'enregistrer de nouveaux passages
-      if (timingData.status === 'finished') {
+      if (timingData.status === TIMING_STATUS.FINISHED) {
         logger.warn(`🚫 Tentative de passage pour ${timingData.participantName} (#${bibNumber}) qui est déjà terminé - Passage ignoré`);
         return timingData; // Retourner les données existantes sans modification
       }
@@ -594,7 +594,7 @@ class TimingService {
       // Si le participant a atteint le nombre de tours requis
       if (lapCount >= race.duration) {
         // Marquer le participant comme terminé seulement s'il n'est pas déjà terminé
-        if (timingData.status !== 'finished') {
+        if (timingData.status !== TIMING_STATUS.FINISHED) {
           logger.info(`🏁 Marquage ${timingData.participantName} comme terminé (${lapCount} tours atteints)`);
           const finishedTiming = this.timingDataModel.finishTiming(participantId, passings[passings.length - 1].time);
           
@@ -602,7 +602,7 @@ class TimingService {
             logger.info(`🏁 Participant ${timingData.participantName} a terminé ses ${race.duration} tours (statut course: ${race.status})`);
             
             // Vérifier si tous les participants ont terminé (pour toutes les courses actives ou en finition)
-            if (race.status === 'in_progress' || race.status === 'finishing') {
+            if (race.status === RACE_STATUS.IN_PROGRESS || race.status === RACE_STATUS.FINISHING) {
               setTimeout(async () => {
                 const allFinished = await this.checkAllParticipantsFinished(raceId);
                 if (allFinished) {
@@ -655,9 +655,9 @@ class TimingService {
       const elapsedTimeMinutes = Math.floor((now.getTime() - startTimeDate.getTime()) / (1000 * 60));
 
       // Si le temps de course est écoulé et que la course est en mode "finishing"
-      if (elapsedTimeMinutes >= race.duration && race.status === 'finishing') {
+      if (elapsedTimeMinutes >= race.duration && race.status === RACE_STATUS.FINISHING) {
         // Marquer le participant comme terminé s'il n'est pas déjà terminé
-        if (timingData.status === 'running') {
+        if (timingData.status === TIMING_STATUS.RUNNING) {
           logger.info(`🕒 Marquage ${timingData.participantName} comme terminé (temps écoulé: ${elapsedTimeMinutes}/${race.duration} min)`);
           
           const passings = this.parsePassings(timingData.passings);
@@ -743,13 +743,18 @@ class TimingService {
         throw new Error('Course non trouvée');
       }
 
+      logger.debug(`📊 getTimingStats - Course: ${race.name}, Statut: ${race.status}`);
+
       const stats = this.timingDataModel.getRaceStats(raceId);
+      logger.debug(`📊 Stats de base:`, stats);
       
       // Enrichir les statistiques pour le frontend
       const gtTimestamp = this.raceStartTimes.get(raceId);
+      logger.debug(`📊 GT Timestamp: ${gtTimestamp}, Race Status: ${race.status}`);
+      
       let elapsedTime = '00:00:00';
       
-      if (gtTimestamp && race.status === RACE_STATUS.IN_PROGRESS) {
+      if (gtTimestamp && (race.status === RACE_STATUS.IN_PROGRESS || race.status === RACE_STATUS.FINISHING || race.status === RACE_STATUS.PAUSED)) {
         const startTime = new Date(gtTimestamp);
         const currentTime = new Date();
         const elapsed = currentTime.getTime() - startTime.getTime();
@@ -760,25 +765,42 @@ class TimingService {
         const seconds = Math.floor((elapsed % 60000) / 1000);
         
         elapsedTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        logger.debug(`📊 Temps écoulé calculé: ${elapsedTime} (${elapsed}ms)`);
+      } else {
+        logger.debug(`📊 Pas de calcul de temps écoulé - GT: ${!!gtTimestamp}, Status compatible: ${race.status === RACE_STATUS.IN_PROGRESS || race.status === RACE_STATUS.FINISHING || race.status === RACE_STATUS.PAUSED}`);
       }
 
       // Obtenir les participants en course et terminés
       const runningParticipants = this.timingDataModel.findByRace(raceId, { status: TIMING_STATUS.RUNNING });
       const finishedParticipants = this.timingDataModel.findByRace(raceId, { status: TIMING_STATUS.FINISHED });
       
+      logger.debug(`📊 Participants - En course: ${runningParticipants.length}, Terminés: ${finishedParticipants.length}`);
+      
       // Calculer le nombre total de tours/passages
       let totalLaps = 0;
       const allTimings = this.timingDataModel.findByRace(raceId);
+      logger.debug(`📊 Total participants dans la course: ${allTimings.length}`);
+      
       allTimings.forEach(timing => {
         try {
+          // Debug: Afficher les passings bruts
+          logger.debug(`📊 DEBUG - ${timing.participantName} passings bruts:`, { 
+            passingsType: typeof timing.passings,
+            passingsValue: timing.passings,
+            status: timing.status 
+          });
+          
           // Utiliser la fonction de parsing sécurisée
           const passings = this.parsePassings(timing.passings);
           totalLaps += passings.length;
+          logger.debug(`📊 ${timing.participantName}: ${passings.length} passages (status: ${timing.status})`);
         } catch (error) {
           // Ignorer les erreurs et continuer
           logger.warn(`Erreur parsing passings pour timing ${timing.id}: ${error.message}`);
         }
       });
+      
+      logger.debug(`📊 Total tours calculé: ${totalLaps}`);
 
       // Dernier passage
       let lastPassingTime = null;
@@ -805,7 +827,7 @@ class TimingService {
         finishedCount: finishedParticipants.length,
         raceStatus: race.status,
         gtTimestamp,
-        raceStarted: race.status === RACE_STATUS.IN_PROGRESS
+        raceStarted: race.status === RACE_STATUS.IN_PROGRESS || race.status === RACE_STATUS.FINISHING || race.status === RACE_STATUS.PAUSED
       };
 
       return enrichedStats;
@@ -1070,7 +1092,7 @@ class TimingService {
       }
       
       // Permettre la vérification pour les courses 'in_progress' et 'finishing'
-      if (race.status !== 'in_progress' && race.status !== 'finishing') {
+      if (race.status !== RACE_STATUS.IN_PROGRESS && race.status !== RACE_STATUS.FINISHING) {
         return { shouldFinish: false };
       }
 
@@ -1087,9 +1109,9 @@ class TimingService {
       // Convertir raceStartTime en Date s'il s'agit d'une chaîne ou d'un timestamp
       const startTimeDate = new Date(raceStartTime);
       const elapsedTimeMs = now.getTime() - startTimeDate.getTime();
-      const elapsedTimeMinutes = Math.floor(elapsedTimeMs / (1000 * 60));
+      const elapsedTimeMinutes = elapsedTimeMs / (1000 * 60); // Ne pas utiliser floor pour la précision
 
-      logger.debug(`Course ${race.name}: temps écoulé = ${elapsedTimeMinutes} min, durée prévue = ${race.duration} ${race.durationType}`);
+      logger.debug(`Course ${race.name}: temps écoulé = ${elapsedTimeMinutes.toFixed(2)} min, durée prévue = ${race.duration} ${race.durationType}`);
 
       let shouldFinish = false;
       let reason = '';
@@ -1205,7 +1227,7 @@ class TimingService {
       }
 
       // Permettre la vérification pour les courses 'in_progress' et 'finishing'
-      if (race.status !== 'in_progress' && race.status !== 'finishing') {
+      if (race.status !== RACE_STATUS.IN_PROGRESS && race.status !== RACE_STATUS.FINISHING) {
         return false;
       }
 
@@ -1228,7 +1250,7 @@ class TimingService {
         
         const allFinished = timingData.every(participant => {
           // Un participant est considéré comme "fini" s'il est marqué comme finished, dnf, ou dns
-          const isFinished = ['finished', 'dnf', 'dns'].includes(participant.status);
+          const isFinished = [TIMING_STATUS.FINISHED, TIMING_STATUS.DNF, TIMING_STATUS.DNS].includes(participant.status);
           return isFinished;
         });
         
@@ -1241,13 +1263,13 @@ class TimingService {
       if (race.durationType === 'Temps') {
         const allFinished = timingData.every(participant => {
           // Si le participant est DNF ou DNS, on le considère comme terminé
-          if (participant.status === 'dnf' || participant.status === 'dns' || participant.status === 'finished') {
+          if (participant.status === TIMING_STATUS.DNF || participant.status === TIMING_STATUS.DNS || participant.status === TIMING_STATUS.FINISHED) {
             return true;
           }
           
           // Si le participant est encore en train de courir (status = running), 
           // on considère qu'il n'a pas terminé
-          if (participant.status === 'running') {
+          if (participant.status === TIMING_STATUS.RUNNING) {
             logger.debug(`Participant ${participant.participantName} encore en course (status: running)`);
             return false;
           }

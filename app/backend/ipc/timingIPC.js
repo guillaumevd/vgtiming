@@ -77,7 +77,14 @@ class TimingIPCHandler {
     // Obtenir les statistiques
     ipcMain.handle('timing:getStats', async (event, raceId) => {
       logger.debug('IPC: timing:getStats', { raceId });
-      return await this.timingController.getTimingStats(raceId);
+      try {
+        const stats = await this.timingController.getTimingStats(raceId);
+        logger.debug('IPC: timing:getStats result', { raceId, stats });
+        return stats;
+      } catch (error) {
+        logger.error('IPC: timing:getStats error', { raceId, error: error.message });
+        throw error;
+      }
     });
 
     // Démarrage de masse

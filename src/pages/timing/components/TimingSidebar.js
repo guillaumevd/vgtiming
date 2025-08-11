@@ -236,10 +236,6 @@ const TimingSidebar = ({
           {selectedRace && (
             <div className="info-grid">
               <div className="info-item">
-                <span className="info-label">Durée écoulée</span>
-                <span className="info-value">{timingStats.elapsedTime || '00:00:00'}</span>
-              </div>
-              <div className="info-item">
                 <span className="info-label">Tours enregistrés</span>
                 <span className="info-value">{timingStats.totalLaps || 0}</span>
               </div>
