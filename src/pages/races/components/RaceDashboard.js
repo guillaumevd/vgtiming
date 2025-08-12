@@ -20,6 +20,10 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
     }
 
     const printContent = printRef.current.cloneNode(true);
+    
+    // Supprimer les statistiques indésirables du contenu cloné
+    const summaryStats = printContent.querySelectorAll('.results-summary, .summary-stat');
+    summaryStats.forEach(element => element.remove());
     const printWindow = window.open('', '_blank');
     
     printWindow.document.write(`

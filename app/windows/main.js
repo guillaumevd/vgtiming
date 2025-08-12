@@ -36,8 +36,8 @@ function createWindow() {
         frame: false,
         titleBarStyle: 'hidden',
         icon: isDev ? 
-            path.join(electron.app.getAppPath(), 'public', 'assets', 'images', 'icon') + `.${os.platform() === "win32" ? "ico" : "png"}` :
-            path.join(electron.app.getAppPath(), 'build', 'assets', 'images', 'icon') + `.${os.platform() === "win32" ? "ico" : "png"}`,
+            path.join(electron.app.getAppPath(), 'public', 'assets', 'images', 'icon.ico') :
+            path.join(electron.app.getAppPath(), 'build', 'assets', 'images', 'icon.ico'),
         show: false,
         webPreferences: {
             preload: preloadFile,

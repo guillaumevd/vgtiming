@@ -1,5 +1,6 @@
 const { app, ipcMain, BrowserWindow } = require('electron');
 const { autoUpdater } = require('electron-updater')
+const path = require('path');
 
 // Backend Integration
 const { initializeBackend, cleanupBackend } = require('./backend');
@@ -7,13 +8,24 @@ const { initializeBackend, cleanupBackend } = require('./backend');
 //DISABLE UPDATER AUTO DOWNLOAD
 autoUpdater.autoDownload = false;
 
+// Set app icon for Windows taskbar
+const isDev = process.env.NODE_ENV === 'dev';
+if (process.platform === 'win32') {
+    const iconPath = isDev ? 
+        path.join(__dirname, '..', 'public', 'assets', 'images', 'icon.ico') :
+        path.join(app.getAppPath(), 'build', 'assets', 'images', 'icon.ico');
+    
+    app.whenReady().then(() => {
+        app.setAppUserModelId('com.vgtiming.app');
+    });
+}
+
 //WINDOWS
 const UpdateWindow = require("./windows/update");
 const MainWindow = require("./windows/main");
 //-------------------------------------------------
 
 //VERIFICATIONS
-const isDev = process.env.NODE_ENV === 'dev';
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {

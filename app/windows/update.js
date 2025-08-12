@@ -20,7 +20,9 @@ function createWindow() {
         title: "VG-Timing Updater",
         width: 400,
         height: 500,
-        icon: path.join(electron.app.getAppPath(), 'build', 'assets', 'images', 'icon') + `.${os.platform() === "win32" ? "ico" : "png"}`,
+        icon: isDev ? 
+            path.join(electron.app.getAppPath(), 'public', 'assets', 'images', 'icon.ico') :
+            path.join(electron.app.getAppPath(), 'build', 'assets', 'images', 'icon.ico'),
         transparent: os.platform() === 'win32',
         frame: false,
         show: false,
