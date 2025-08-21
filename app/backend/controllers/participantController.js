@@ -1,4 +1,5 @@
 const logger = require('../utils/logger');
+const raceBackupService = require('../services/raceBackupService');
 
 class ParticipantController {
   constructor(services) {
@@ -11,6 +12,20 @@ class ParticipantController {
   async createParticipant(data) {
     try {
       const participant = await this.participantService.createParticipant(data);
+      
+      // Sauvegarde automatique JSON si le participant a un raceId
+      if (participant.raceId) {
+        try {
+          await raceBackupService.backupRace(participant.raceId);
+        } catch (backupError) {
+          logger.warn('Erreur lors de la sauvegarde JSON après ajout de participant', {
+            raceId: participant.raceId,
+            participantId: participant.id,
+            error: backupError.message
+          });
+        }
+      }
+      
       return { success: true, data: participant };
     } catch (error) {
       logger.error('ParticipantController.createParticipant:', error);
@@ -24,6 +39,20 @@ class ParticipantController {
   async createParticipantsBatch(participants) {
     try {
       const result = await this.participantService.createParticipantsBatch(participants);
+      
+      // Sauvegarde automatique JSON pour toutes les courses concernées
+      const raceIds = [...new Set(participants.map(p => p.raceId).filter(id => id))];
+      for (const raceId of raceIds) {
+        try {
+          await raceBackupService.backupRace(raceId);
+        } catch (backupError) {
+          logger.warn('Erreur lors de la sauvegarde JSON après ajout de participants en lot', {
+            raceId: raceId,
+            error: backupError.message
+          });
+        }
+      }
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('ParticipantController.createParticipantsBatch:', error);
@@ -63,6 +92,20 @@ class ParticipantController {
   async updateParticipant(participantId, updateData) {
     try {
       const participant = await this.participantService.updateParticipant(participantId, updateData);
+      
+      // Sauvegarde automatique JSON si le participant a un raceId
+      if (participant.raceId) {
+        try {
+          await raceBackupService.backupRace(participant.raceId);
+        } catch (backupError) {
+          logger.warn('Erreur lors de la sauvegarde JSON après mise à jour de participant', {
+            raceId: participant.raceId,
+            participantId: participant.id,
+            error: backupError.message
+          });
+        }
+      }
+      
       return { success: true, data: participant };
     } catch (error) {
       logger.error('ParticipantController.updateParticipant:', error);
@@ -75,7 +118,25 @@ class ParticipantController {
    */
   async deleteParticipant(participantId) {
     try {
+      // Récupérer les infos du participant avant suppression pour avoir le raceId
+      const participant = await this.participantService.getParticipantById(participantId);
+      const raceId = participant ? participant.raceId : null;
+      
       const result = await this.participantService.deleteParticipant(participantId);
+      
+      // Sauvegarde automatique JSON
+      if (raceId) {
+        try {
+          await raceBackupService.backupRace(raceId);
+        } catch (backupError) {
+          logger.warn('Erreur lors de la sauvegarde JSON après suppression de participant', {
+            raceId: raceId,
+            participantId: participantId,
+            error: backupError.message
+          });
+        }
+      }
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('ParticipantController.deleteParticipant:', error);

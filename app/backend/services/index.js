@@ -4,6 +4,7 @@ const TimingService = require('./timingService');
 const SettingsService = require('./settingsService');
 const CrossMgrService = require('./crossmgrService');
 const AppLogService = require('./appLogService');
+const raceBackupService = require('./raceBackupService');
 
 /**
  * Factory pour créer les instances des services avec les modèles

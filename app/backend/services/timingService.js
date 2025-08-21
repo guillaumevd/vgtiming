@@ -558,6 +558,19 @@ class TimingService {
         });
       }, 1000); // Petit délai pour laisser le temps aux calculs de positions
       
+      // Sauvegarde automatique JSON après le passage
+      try {
+        const raceBackupService = require('./raceBackupService');
+        await raceBackupService.backupRace(raceId);
+        logger.debug(`Sauvegarde JSON effectuée après passage de ${timingData.participantName} (#${bibNumber})`);
+      } catch (backupError) {
+        logger.warn('Erreur lors de la sauvegarde JSON après passage CrossMgr', {
+          raceId: raceId,
+          bibNumber: bibNumber,
+          error: backupError.message
+        });
+      }
+      
       logger.info(`Passage CrossMgr enregistré pour ${timingData.participantName} (#${bibNumber}) - Temps écoulé: ${elapsedTime ? (elapsedTime/1000).toFixed(1) + 's' : 'N/A'}`);
       return updatedTiming;
     } catch (error) {
@@ -1330,6 +1343,19 @@ class TimingService {
           finishedAt: new Date().toISOString()
         });
         logger.debug('Événement race:auto_finished envoyé au frontend');
+      }
+
+      // Sauvegarde automatique JSON après fin automatique de course
+      try {
+        const raceBackupService = require('./raceBackupService');
+        await raceBackupService.backupRace(raceId);
+        logger.info(`Sauvegarde JSON effectuée après fin automatique de course ${race.name}`);
+      } catch (backupError) {
+        logger.warn('Erreur lors de la sauvegarde JSON après fin automatique de course', {
+          raceId: raceId,
+          raceName: race.name,
+          error: backupError.message
+        });
       }
 
       return updatedRace;

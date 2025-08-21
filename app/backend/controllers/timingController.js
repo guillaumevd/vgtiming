@@ -1,9 +1,26 @@
 const logger = require('../utils/logger');
+const raceBackupService = require('../services/raceBackupService');
 
 class TimingController {
   constructor(services) {
     this.timingService = services.timing;
     this.raceService = services.race;
+  }
+
+  /**
+   * Méthode helper pour sauvegarder automatiquement les données de timing
+   */
+  async _backupTimingData(raceId) {
+    if (raceId) {
+      try {
+        await raceBackupService.updateTimingData(raceId);
+      } catch (backupError) {
+        logger.warn('Erreur lors de la sauvegarde JSON des données de chronométrage', {
+          raceId: raceId,
+          error: backupError.message
+        });
+      }
+    }
   }
 
   /**
@@ -34,6 +51,9 @@ class TimingController {
       
       // 3. Démarrer le chronométrage de masse
       const massTimingResult = await this.timingService.startMassTiming(raceId);
+      
+      // 4. Sauvegarde automatique JSON après toutes les opérations
+      await this._backupTimingData(raceId);
       
       return { 
         success: true, 
@@ -81,6 +101,10 @@ class TimingController {
   async startParticipantTiming(raceId, bibNumber, startTime = null) {
     try {
       const result = await this.timingService.startParticipantTiming(raceId, bibNumber, startTime);
+      
+      // Sauvegarde automatique JSON
+      await this._backupTimingData(raceId);
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.startParticipantTiming:', error);
@@ -94,6 +118,10 @@ class TimingController {
   async finishParticipantTiming(raceId, bibNumber, finishTime = null) {
     try {
       const result = await this.timingService.finishParticipantTiming(raceId, bibNumber, finishTime);
+      
+      // Sauvegarde automatique JSON
+      await this._backupTimingData(raceId);
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.finishParticipantTiming:', error);
@@ -107,6 +135,10 @@ class TimingController {
   async markParticipantDNS(raceId, bibNumber) {
     try {
       const result = await this.timingService.markParticipantDNS(raceId, bibNumber);
+      
+      // Sauvegarde automatique JSON
+      await this._backupTimingData(raceId);
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.markParticipantDNS:', error);
@@ -120,6 +152,10 @@ class TimingController {
   async markParticipantDNF(raceId, bibNumber) {
     try {
       const result = await this.timingService.markParticipantDNF(raceId, bibNumber);
+      
+      // Sauvegarde automatique JSON
+      await this._backupTimingData(raceId);
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.markParticipantDNF:', error);
@@ -133,6 +169,10 @@ class TimingController {
   async addPassing(raceId, bibNumber, passingData) {
     try {
       const result = await this.timingService.addPassing(raceId, bibNumber, passingData);
+      
+      // Sauvegarde automatique JSON
+      await this._backupTimingData(raceId);
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.addPassing:', error);
@@ -185,6 +225,10 @@ class TimingController {
   async startMassTiming(raceId, startTime = null) {
     try {
       const result = await this.timingService.startMassTiming(raceId, startTime);
+      
+      // Sauvegarde automatique JSON
+      await this._backupTimingData(raceId);
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.startMassTiming:', error);
@@ -237,6 +281,10 @@ class TimingController {
   async resetParticipantTiming(raceId, bibNumber) {
     try {
       const result = await this.timingService.resetParticipantTiming(raceId, bibNumber);
+      
+      // Sauvegarde automatique JSON
+      await this._backupTimingData(raceId);
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.resetParticipantTiming:', error);
@@ -250,6 +298,10 @@ class TimingController {
   async resetRaceTiming(raceId) {
     try {
       const result = await this.timingService.resetRaceTiming(raceId);
+      
+      // Sauvegarde automatique JSON
+      await this._backupTimingData(raceId);
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.resetRaceTiming:', error);
@@ -302,10 +354,26 @@ class TimingController {
   async autoFinishRace(raceId, reason) {
     try {
       const result = await this.timingService.autoFinishRace(raceId, reason);
+      
+      // Sauvegarde automatique JSON
+      await this._backupTimingData(raceId);
+      
       return { success: true, data: result };
     } catch (error) {
       logger.error('TimingController.autoFinishRace:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Méthode privée pour déclencher la sauvegarde automatique après modification des données de chronométrage
+   */
+  async _backupTimingData(raceId) {
+    try {
+      const raceBackupService = require('../services/raceBackupService');
+      await raceBackupService.backupRace(raceId);
+    } catch (error) {
+      logger.error('TimingController._backupTimingData:', error);
     }
   }
 }
