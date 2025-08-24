@@ -68,7 +68,7 @@ class TimingController {
   async startRaceWithTiming(raceId) {
     try {
       // Mettre à jour le statut de la course
-      await this.raceService.updateRaceStatus(raceId, 'in_progress');
+      await this.raceService.changeRaceStatus(raceId, 'in_progress');
       
       // Initialiser le chronométrage
       const timingResult = await this.timingService.initializeRaceTiming(raceId);

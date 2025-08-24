@@ -256,7 +256,7 @@ class RaceController {
    */
   async updateStatus(raceId, status) {
     try {
-      const result = await this.raceService.updateRaceStatus(raceId, status);
+      const result = await this.raceService.changeRaceStatus(raceId, status);
       
       // Sauvegarde automatique JSON après changement de statut
       try {
