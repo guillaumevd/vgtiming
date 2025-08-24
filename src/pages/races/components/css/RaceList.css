@@ -32,6 +32,12 @@
   font-size: 2rem;
 }
 
+.header-buttons {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
 /* Unified button style */
 .btn-unified {
   display: inline-flex;

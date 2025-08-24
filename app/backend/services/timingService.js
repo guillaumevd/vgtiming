@@ -25,6 +25,13 @@ class TimingService {
   }
 
   /**
+   * Obtenir l'instance de la base de données
+   */
+  getDatabase() {
+    return this.timingDataModel.db;
+  }
+
+  /**
    * Définir le service CrossMgr après l'initialisation
    */
   setCrossMgrService(crossmgrService) {
@@ -1362,6 +1369,43 @@ class TimingService {
       
     } catch (error) {
       logger.error(`Erreur lors de la fin automatique de course ${raceId}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Créer une nouvelle donnée de chronométrage (pour l'importation)
+   */
+  async createTimingData(timingData) {
+    try {
+      // Valider les données de base
+      if (!timingData.raceId) {
+        throw new Error('raceId est requis pour créer des données de timing');
+      }
+
+      // Si bibNumber est fourni, essayer de trouver le participant correspondant
+      if (timingData.bibNumber && !timingData.participantId) {
+        const participant = this.participantModel.findByRaceAndNumber(timingData.raceId, timingData.bibNumber);
+        if (participant) {
+          timingData.participantId = participant.id;
+        }
+      }
+
+      // Créer la donnée de timing avec le modèle
+      const result = this.timingDataModel.create(timingData);
+      
+      if (result) {
+        logger.info(`Donnée de timing créée pour participant #${timingData.bibNumber || 'N/A'}`, {
+          timingId: result.id,
+          raceId: timingData.raceId,
+          bibNumber: timingData.bibNumber,
+          status: timingData.status
+        });
+      }
+
+      return result;
+    } catch (error) {
+      logger.error('Erreur lors de la création de donnée de timing:', error);
       throw error;
     }
   }

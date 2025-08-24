@@ -250,6 +250,31 @@ class RaceController {
       return { success: false, error: error.message };
     }
   }
+
+  /**
+   * Mettre à jour le statut d'une course
+   */
+  async updateStatus(raceId, status) {
+    try {
+      const result = await this.raceService.updateRaceStatus(raceId, status);
+      
+      // Sauvegarde automatique JSON après changement de statut
+      try {
+        await raceBackupService.backupRace(raceId);
+      } catch (backupError) {
+        logger.warn('Erreur lors de la sauvegarde JSON après changement de statut', {
+          raceId: raceId,
+          status: status,
+          error: backupError.message
+        });
+      }
+      
+      return { success: true, data: result };
+    } catch (error) {
+      logger.error('RaceController.updateStatus:', error);
+      return { success: false, error: error.message };
+    }
+  }
 }
 
 module.exports = RaceController;

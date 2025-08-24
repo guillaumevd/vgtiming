@@ -85,6 +85,12 @@ class RaceIPCHandler {
       logger.debug('IPC: race:canDelete', { raceId });
       return await this.raceController.canDeleteRace(raceId);
     });
+
+    // Mettre à jour le statut d'une course
+    ipcMain.handle('race:updateStatus', async (event, raceId, status) => {
+      logger.debug('IPC: race:updateStatus', { raceId, status });
+      return await this.raceController.updateStatus(raceId, status);
+    });
   }
 
   unregisterHandlers() {
@@ -92,7 +98,7 @@ class RaceIPCHandler {
       'race:create', 'race:getAll', 'race:getById', 'race:update', 
       'race:delete', 'race:changeStatus', 'race:duplicate', 'race:search',
       'race:getStats', 'race:getRecent', 'race:getUpcoming', 'race:reset',
-      'race:canDelete'
+      'race:canDelete', 'race:updateStatus'
     ];
 
     handlers.forEach(handler => {

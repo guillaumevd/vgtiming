@@ -89,14 +89,24 @@ const RaceList = ({ onSelectRace, onManageParticipants, onViewDashboard, onSetMo
     onSetMode('add');
   };
 
+  const handleImportClick = () => {
+    onSetMode('import');
+  };
+
   return (
     <div className="race-list-container">
       <div className="race-list-header">
         <h1>Gestion des Courses</h1>
-        <button className="race-button primary add-race-btn" onClick={handleAddClick}>
-          <i className="fas fa-plus"></i>
-          Nouvelle Course
-        </button>
+        <div className="header-buttons">
+          <button className="race-button secondary import-race-btn" onClick={handleImportClick}>
+            <i className="fas fa-file-import"></i>
+            Importer Course
+          </button>
+          <button className="race-button primary add-race-btn" onClick={handleAddClick}>
+            <i className="fas fa-plus"></i>
+            Nouvelle Course
+          </button>
+        </div>
       </div>
       
       {loading ? (
@@ -128,6 +138,10 @@ const RaceList = ({ onSelectRace, onManageParticipants, onViewDashboard, onSetMo
           <button className="race-button primary" onClick={handleAddClick}>
             <i className="fas fa-plus"></i>
             Créer une course
+          </button>
+          <button className="race-button secondary" onClick={handleImportClick}>
+            <i className="fas fa-file-import"></i>
+            Importer course
           </button>
         </div>
       ) : (

@@ -1,0 +1,142 @@
+{
+  "race": {
+    "name": "Course Test Import Avec Timing",
+    "date": "2025-08-22T00:00:00.000Z",
+    "time": "14:00",
+    "location": "Circuit Test",
+    "type": "Route",
+    "duration": 3,
+    "durationType": "Tours",
+    "maxParticipants": 10,
+    "description": "Course test avec données de timing complètes",
+    "status": "finished"
+  },
+  "participants": [
+    {
+      "name": "Alice Martin",
+      "number": "1",
+      "team": "Team Alpha",
+      "category": "Élite",
+      "epcTag": "EPC001"
+    },
+    {
+      "name": "Bob Durand",
+      "number": "2", 
+      "team": "Team Beta",
+      "category": "Élite",
+      "epcTag": "EPC002"
+    },
+    {
+      "name": "Charlie Petit",
+      "number": "3",
+      "team": "Team Gamma",
+      "category": "Master",
+      "epcTag": "EPC003"
+    }
+  ],
+  "timingData": [
+    {
+      "participantId": null,
+      "bibNumber": "1",
+      "epcTag": "EPC001",
+      "passings": [
+        {
+          "checkpoint": "Tour 1",
+          "time": "2025-08-22T12:05:23.456Z",
+          "passingTime": "2025-08-22T12:05:23.456Z",
+          "elapsedTime": 323456,
+          "lapTime": 323456,
+          "source": "manual"
+        },
+        {
+          "checkpoint": "Tour 2", 
+          "time": "2025-08-22T12:10:45.123Z",
+          "passingTime": "2025-08-22T12:10:45.123Z",
+          "elapsedTime": 645123,
+          "lapTime": 321667,
+          "source": "manual"
+        },
+        {
+          "checkpoint": "Tour 3",
+          "time": "2025-08-22T12:15:12.789Z",
+          "passingTime": "2025-08-22T12:15:12.789Z",
+          "elapsedTime": 912789,
+          "lapTime": 267666,
+          "source": "manual"
+        }
+      ],
+      "status": "finished",
+      "startTime": "2025-08-22T12:00:00.000Z",
+      "finishTime": "2025-08-22T12:15:12.789Z",
+      "totalTime": 912789,
+      "position": 1,
+      "category": "Élite"
+    },
+    {
+      "participantId": null,
+      "bibNumber": "2",
+      "epcTag": "EPC002", 
+      "passings": [
+        {
+          "checkpoint": "Tour 1",
+          "time": "2025-08-22T12:05:45.678Z",
+          "passingTime": "2025-08-22T12:05:45.678Z",
+          "elapsedTime": 345678,
+          "lapTime": 345678,
+          "source": "manual"
+        },
+        {
+          "checkpoint": "Tour 2",
+          "time": "2025-08-22T12:11:23.456Z",
+          "passingTime": "2025-08-22T12:11:23.456Z",
+          "elapsedTime": 683456,
+          "lapTime": 337778,
+          "source": "manual"
+        },
+        {
+          "checkpoint": "Tour 3",
+          "time": "2025-08-22T12:16:01.234Z",
+          "passingTime": "2025-08-22T12:16:01.234Z",
+          "elapsedTime": 961234,
+          "lapTime": 277778,
+          "source": "manual"
+        }
+      ],
+      "status": "finished",
+      "startTime": "2025-08-22T12:00:00.000Z", 
+      "finishTime": "2025-08-22T12:16:01.234Z",
+      "totalTime": 961234,
+      "position": 2,
+      "category": "Élite"
+    },
+    {
+      "participantId": null,
+      "bibNumber": "3",
+      "epcTag": "EPC003",
+      "passings": [
+        {
+          "checkpoint": "Tour 1", 
+          "time": "2025-08-22T12:06:12.345Z",
+          "passingTime": "2025-08-22T12:06:12.345Z",
+          "elapsedTime": 372345,
+          "lapTime": 372345,
+          "source": "manual"
+        },
+        {
+          "checkpoint": "Tour 2",
+          "time": "2025-08-22T12:12:34.567Z", 
+          "passingTime": "2025-08-22T12:12:34.567Z",
+          "elapsedTime": 754567,
+          "lapTime": 382222,
+          "source": "manual"
+        }
+      ],
+      "status": "dnf",
+      "startTime": "2025-08-22T12:00:00.000Z",
+      "finishTime": null,
+      "totalTime": 754567,
+      "position": null,
+      "category": "Master"
+    }
+  ]
+}

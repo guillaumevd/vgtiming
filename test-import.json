@@ -1,0 +1,44 @@
+{
+  "race": {
+    "name": "Course Test Import",
+    "date": "2025-08-22T00:00:00.000Z",
+    "time": "14:30",
+    "location": "Circuit de Test",
+    "type": "Route",
+    "duration": 3,
+    "durationType": "Tours",
+    "maxParticipants": 10,
+    "description": "Course d'exemple pour tester l'importation"
+  },
+  "participants": [
+    {
+      "name": "Jean Dupont",
+      "number": 1,
+      "team": "Team Alpha",
+      "category": "Senior",
+      "epcTag": "TAG001"
+    },
+    {
+      "name": "Marie Martin",
+      "number": 2,
+      "team": "Team Beta",
+      "category": "Junior",
+      "epcTag": "TAG002"
+    },
+    {
+      "name": "Pierre Durand",
+      "number": 3,
+      "team": "Team Gamma",
+      "category": "Senior",
+      "epcTag": "TAG003"
+    }
+  ],
+  "timingData": [],
+  "metadata": {
+    "exportedAt": "2025-08-21T22:00:00.000Z",
+    "exportedBy": "VG-Timing Test",
+    "version": "1.0",
+    "totalParticipants": 3,
+    "finishedParticipants": 0
+  }
+}

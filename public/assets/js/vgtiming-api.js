@@ -381,6 +381,51 @@ class VGTimingAPI {
     return await window.electronAPI.invoke('timing:autoFinish', raceId, reason);
   }
 
+  async importTimingData(raceId, timingDataArray) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      console.log('Mode web dev - Importation timing simulée pour course:', raceId, 'avec', timingDataArray.length, 'données');
+      return this.simulateResponse({ 
+        raceId, 
+        imported: timingDataArray.length,
+        data: timingDataArray.map((item, index) => ({ ...item, id: `timing-${index}` }))
+      });
+    }
+    
+    return await window.electronAPI.invoke('timing:import', raceId, timingDataArray);
+  }
+
+  async importTimingDataDirect(raceId, timingDataArray) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      console.log('Mode web dev - Importation timing directe simulée pour course:', raceId, 'avec', timingDataArray.length, 'données');
+      return this.simulateResponse({ 
+        raceId, 
+        imported: timingDataArray.length,
+        data: timingDataArray.map((item, index) => ({ ...item, id: `timing-direct-${index}` }))
+      });
+    }
+    
+    return await window.electronAPI.invoke('timing:importDirect', raceId, timingDataArray);
+  }
+
+  async updateRaceStatus(raceId, status) {
+    if (!this.isReady) return { success: false, error: 'API not ready' };
+    
+    if (!this.isElectronContext) {
+      console.log('Mode web dev - Mise à jour statut simulée pour course:', raceId, 'vers', status);
+      return this.simulateResponse({ 
+        raceId, 
+        status: status,
+        updatedAt: new Date().toISOString()
+      });
+    }
+    
+    return await window.electronAPI.invoke('race:updateStatus', raceId, status);
+  }
+
   // ===== SETTINGS =====
 
   async getSetting(key) {

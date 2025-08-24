@@ -1,4 +1,5 @@
 const { ipcMain } = require('electron');
+const { getBackendInstance } = require('../index');
 const logger = require('../utils/logger');
 
 class TimingIPCHandler {
@@ -74,18 +75,61 @@ class TimingIPCHandler {
       return await this.timingController.getRanking(raceId, category);
     });
 
-    // Obtenir les statistiques
+        // Obtenir les statistiques de timing
     ipcMain.handle('timing:getStats', async (event, raceId) => {
       logger.debug('IPC: timing:getStats', { raceId });
+      return await this.timingController.getTimingStats(raceId);
+    });
+
+    // Import timing data avec methode existante
+    ipcMain.handle('timing:import', async (event, raceId, timingDataArray) => {
       try {
-        const stats = await this.timingController.getTimingStats(raceId);
-        logger.debug('IPC: timing:getStats result', { raceId, stats });
-        return stats;
+        const backend = getBackendInstance();
+        const result = await backend.controllers.timing.importTimingData(raceId, timingDataArray);
+        return result;
       } catch (error) {
-        logger.error('IPC: timing:getStats error', { raceId, error: error.message });
-        throw error;
+        logger.error('Erreur lors de l\'importation des donnees de timing', {
+          service: 'timing-ipc',
+          error: error.message
+        });
+        return { success: false, error: error.message };
       }
     });
+
+    // Import timing data avec insertion directe en base
+    ipcMain.handle('timing:importDirect', async (event, raceId, timingDataArray) => {
+      try {
+        const backend = getBackendInstance();
+        const result = await backend.controllers.timing.importTimingDataDirect(raceId, timingDataArray);
+        return result;
+      } catch (error) {
+        logger.error('Erreur lors de l\'importation directe des donnees de timing', {
+          service: 'timing-ipc',
+          error: error.message
+        });
+        return { success: false, error: error.message };
+      }
+    });
+  }
+
+  cleanup() {
+    const handlers = [
+      'timing:initialize',
+      'timing:startRace',
+      'timing:getByRace',
+      'timing:getById',
+      'timing:start',
+      'timing:finish',
+      'timing:markDNS',
+      'timing:markDNF',
+      'timing:updateStatus',
+      'timing:updatePosition',
+      'timing:addPassing',
+      'timing:removePassing',
+      'timing:updatePassing',
+      'timing:getStats',
+      'timing:import'
+    ];
 
     // Démarrage de masse
     ipcMain.handle('timing:startMass', async (event, raceId, startTime = null) => {
