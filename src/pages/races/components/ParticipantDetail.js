@@ -321,6 +321,7 @@ const ParticipantDetail = ({ race, participant, onBack }) => {
     return (
       <div className="race-dashboard-container">
         <div className="dashboard-header">
+          <h1>Chargement...</h1>
           <button 
             className="btn-unified btn-secondary-unified back-button"
             onClick={onBack}
@@ -328,7 +329,6 @@ const ParticipantDetail = ({ race, participant, onBack }) => {
             <i className="fas fa-arrow-left"></i>
             Retour
           </button>
-          <h1>Chargement...</h1>
         </div>
         <div className="loading-state">
           <div className="spinner-border text-primary" role="status">
@@ -341,8 +341,9 @@ const ParticipantDetail = ({ race, participant, onBack }) => {
 
   return (
     <div className="race-dashboard-container">
-      {/* Header avec bouton retour */}
+      {/* Header avec titre à gauche et bouton retour à droite */}
       <div className="dashboard-header">
+        <h1>Détails du participant</h1>
         <button 
           className="btn-unified btn-secondary-unified back-button"
           onClick={onBack}
@@ -350,13 +351,6 @@ const ParticipantDetail = ({ race, participant, onBack }) => {
           <i className="fas fa-arrow-left"></i>
           Retour aux résultats
         </button>
-        <h1 className="participant-detail-title">Détails du participant</h1>
-        <div className="status-actions">
-          <div className="race-info" style={{textAlign: 'right', color: '#a0aec0'}}>
-            <div>{race.name}</div>
-            <div style={{fontSize: '0.875rem'}}>{race.date ? new Date(race.date).toLocaleDateString('fr-FR') : ''}</div>
-          </div>
-        </div>
       </div>
 
       <div className="dashboard-content">

@@ -1,10 +1,16 @@
 /* Participant Detail - Utilise les styles existants de l'application */
 
-/* Titre centré */
-.participant-detail-title {
+/* Titre centré - Override du style existant */
+.dashboard-header h1.participant-detail-title {
   text-align: center !important;
-  flex: 1;
-  margin: 0 1rem;
+  flex: 1 !important;
+  margin: 0 1rem !important;
+  color: #e2e8f0 !important;
+  font-weight: 600 !important;
+  font-size: 2rem !important;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
 }
 
 /* Styles spécifiques uniquement pour les éléments uniques */

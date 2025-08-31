@@ -57,11 +57,11 @@
   font-weight: 600;
   font-size: 2rem;
   flex: 1;
-  text-align: center;
+  text-align: left;
 }
 
 .back-button {
-  margin-right: 1rem;
+  margin-left: 1rem;
 }
 
 .status-actions {
