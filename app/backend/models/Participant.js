@@ -40,7 +40,7 @@ class Participant {
     }
 
     const participant = {
-      id: generateId(),
+      id: participantData.id || generateId(), // Utiliser l'ID fourni ou générer un nouveau
       raceId: participantData.raceId,
       number: String(participantData.number), // Assurer que c'est une chaîne
       name: participantData.name,
@@ -48,12 +48,12 @@ class Participant {
       category: participantData.category || 'Général',
       team: (participantData.team && participantData.team.trim()) || null,
       isActive: participantData.isActive !== undefined ? participantData.isActive : true,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: participantData.createdAt || new Date().toISOString(), // Utiliser la date fournie ou actuelle
+      updatedAt: participantData.updatedAt || new Date().toISOString()  // Utiliser la date fournie ou actuelle
     };
 
     const stmt = this.db.prepare(`
-      INSERT INTO participants (
+      INSERT OR REPLACE INTO participants (
         id, raceId, number, name, epcTag, category, team, isActive, createdAt, updatedAt
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);

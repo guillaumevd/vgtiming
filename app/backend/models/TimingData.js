@@ -13,7 +13,7 @@ class TimingData {
    */
   create(timingData) {
     const timing = {
-      id: generateId(),
+      id: timingData.id || generateId(), // Utiliser l'ID fourni ou générer un nouveau
       participantId: timingData.participantId,
       raceId: timingData.raceId,
       bibNumber: timingData.bibNumber,
@@ -26,12 +26,12 @@ class TimingData {
       position: timingData.position || null,
       category: timingData.category || null,
       notes: timingData.notes || null,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: timingData.createdAt || new Date().toISOString(), // Utiliser la date fournie ou actuelle
+      updatedAt: timingData.updatedAt || new Date().toISOString()  // Utiliser la date fournie ou actuelle
     };
 
     const stmt = this.db.prepare(`
-      INSERT INTO timing_data (
+      INSERT OR REPLACE INTO timing_data (
         id, participantId, raceId, bibNumber, chipId, passings, startTime,
         finishTime, totalTime, status, position, category, notes, createdAt, updatedAt
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -481,9 +481,6 @@ class TimingData {
    * Initialiser les données de chronométrage pour tous les participants d'une course
    */
   initializeRaceTimings(raceId) {
-    // D'abord, nettoyer les anciennes données de timing pour cette course
-    this.db.prepare(`DELETE FROM timing_data WHERE raceId = ?`).run(raceId);
-    
     // Récupérer tous les participants actifs de la course
     const activeParticipants = this.db.prepare(`
       SELECT p.* 
@@ -495,6 +492,20 @@ class TimingData {
       return [];
     }
 
+    // Vérifier quels participants n'ont pas encore de données de timing
+    const existingTimings = this.db.prepare(`
+      SELECT participantId 
+      FROM timing_data 
+      WHERE raceId = ?
+    `).all(raceId);
+    
+    const existingParticipantIds = new Set(existingTimings.map(t => t.participantId));
+    const participantsToInitialize = activeParticipants.filter(p => !existingParticipantIds.has(p.id));
+
+    if (participantsToInitialize.length === 0) {
+      return this.findByRace(raceId);
+    }
+
     const stmt = this.db.prepare(`
       INSERT INTO timing_data (
         id, participantId, raceId, bibNumber, status, category, createdAt, updatedAt
@@ -503,7 +514,7 @@ class TimingData {
 
     const results = [];
     const transaction = this.db.transaction(() => {
-      for (const participant of activeParticipants) {
+      for (const participant of participantsToInitialize) {
         const timing = {
           id: generateId(),
           participantId: participant.id,

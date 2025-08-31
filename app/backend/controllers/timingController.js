@@ -5,6 +5,7 @@ class TimingController {
   constructor(services) {
     this.timingService = services.timing;
     this.raceService = services.race;
+    this.participantService = services.participant; // Ajouter référence au service participant
   }
 
   /**
@@ -301,7 +302,7 @@ class TimingController {
 
   /**
    * Importe des données de timing avec insertion directe en base de données
-   * Méthode simplifiée qui insère directement les données telles qu'elles sont
+   * Méthode simplifiée qui utilise le service de timing existant
    */
   async importTimingDataDirect(raceId, timingDataArray) {
     try {
@@ -309,78 +310,81 @@ class TimingController {
         service: 'timing-controller'
       });
 
-      // Récupérer l'instance de base de données via le service de timing
-      const db = this.timingService.getDatabase();
-      
-      if (!db) {
-        throw new Error('Base de données non disponible');
-      }
-
       const importedData = [];
       let errors = 0;
 
-      // Préparer la requête d'insertion
-      const insertQuery = db.prepare(`
-        INSERT INTO timing_data (
-          raceId, participantId, participantNumber, status, position, totalTime, passings, 
-          created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
+      // Récupérer les participants de la course
+      const participants = await this.participantService.getParticipantsByRace(raceId);
+      const participantsMap = new Map();
+      
+      if (participants && participants.length > 0) {
+        participants.forEach(participant => {
+          participantsMap.set(String(participant.number), participant.id);
+        });
+        logger.debug(`Map des participants créée: ${participantsMap.size} participants`, {
+          service: 'timing-controller',
+          raceId,
+          numbers: Array.from(participantsMap.keys())
+        });
+      } else {
+        throw new Error('Aucun participant trouvé pour cette course');
+      }
 
-      const now = new Date().toISOString();
-
+      // Utiliser le service de timing pour créer chaque donnée
       for (const timingItem of timingDataArray) {
         try {
-          // Trouver le participant par son numéro si pas d'ID fourni
-          let participantId = timingItem.participantId;
-          
-          if (!participantId && (timingItem.participantNumber || timingItem.number)) {
-            const participantQuery = db.prepare(
-              'SELECT id FROM participants WHERE raceId = ? AND number = ? AND isActive = 1'
-            );
-            const participant = participantQuery.get(raceId, String(timingItem.participantNumber || timingItem.number));
-            participantId = participant ? participant.id : null;
-          }
+          const participantNumber = String(timingItem.bibNumber || timingItem.participantNumber || timingItem.number);
+          const participantId = participantsMap.get(participantNumber);
 
           if (!participantId) {
-            logger.warn(`Participant non trouvé pour le numéro ${timingItem.participantNumber || timingItem.number}`, {
+            logger.warn(`Participant non trouvé pour le numéro ${participantNumber}`, {
               service: 'timing-controller',
-              raceId
+              raceId,
+              availableNumbers: Array.from(participantsMap.keys())
             });
             errors++;
             continue;
           }
 
-          const result = insertQuery.run(
-            parseInt(raceId),
-            participantId,
-            String(timingItem.participantNumber || timingItem.number),
-            timingItem.status || 'running',
-            timingItem.position || null,
-            timingItem.totalTime || null,
-            JSON.stringify(timingItem.passings || []),
-            now,
-            now
-          );
+          // Préparer les données pour le service de timing
+          const timingDataToCreate = {
+            id: timingItem.id, // Conserver l'ID original
+            raceId: raceId, // Garder comme UUID string
+            participantId: participantId,
+            participantNumber: participantNumber,
+            bibNumber: timingItem.bibNumber || participantNumber,
+            chipId: timingItem.chipId || null,
+            passings: timingItem.passings || [],
+            startTime: timingItem.startTime || null,
+            finishTime: timingItem.finishTime || null,
+            totalTime: timingItem.totalTime || null,
+            status: timingItem.status || 'running',
+            position: timingItem.position || null,
+            category: timingItem.category || 'Général',
+            notes: timingItem.notes || null,
+            createdAt: timingItem.createdAt || new Date().toISOString(),
+            updatedAt: timingItem.updatedAt || new Date().toISOString()
+          };
 
-          if (result.lastInsertRowid) {
-            importedData.push({
-              id: result.lastInsertRowid,
-              raceId: parseInt(raceId),
-              participantId: participantId,
-              participantNumber: String(timingItem.participantNumber || timingItem.number),
-              status: timingItem.status || 'running',
-              position: timingItem.position || null,
-              totalTime: timingItem.totalTime || null,
-              passings: timingItem.passings || []
+          // Utiliser le service existant pour créer la donnée de timing
+          const createdTiming = await this.timingService.createTimingData(timingDataToCreate);
+          
+          if (createdTiming) {
+            importedData.push(createdTiming);
+            logger.debug(`✓ Données de timing importées pour le participant #${participantNumber}`, {
+              service: 'timing-controller',
+              raceId,
+              position: timingItem.position,
+              status: timingItem.status,
+              totalTime: timingItem.totalTime
             });
           }
         } catch (itemError) {
           errors++;
-          logger.warn(`Erreur lors de l'insertion directe d'une donnée de timing`, {
+          logger.warn(`Erreur lors de l'importation d'une donnée de timing`, {
             service: 'timing-controller',
             raceId,
-            participantNumber: timingItem.participantNumber || timingItem.number,
+            participantNumber: timingItem.bibNumber || timingItem.participantNumber,
             error: itemError.message
           });
         }

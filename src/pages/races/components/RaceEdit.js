@@ -5,9 +5,15 @@ import './css/EditRace.css';
 import './css/SharedForm.css';
 
 const EditRace = ({ race, onRaceUpdated, onRaceDeleted, onRaceCanceled }) => {
+  // Fonction pour convertir une date ISO en format yyyy-MM-dd pour input[type="date"]
+  const formatDateForInput = (isoDate) => {
+    if (!isoDate) return '';
+    return isoDate.split('T')[0]; // Garde seulement la partie date "2025-08-22"
+  };
+
   const [formData, setFormData] = useState({
     name: race.name || '',
-    date: race.date || '',
+    date: formatDateForInput(race.date) || '',
     time: race.time || '',
     location: race.location || '',
     type: race.type || RACE_TYPES.ROAD_RACE,

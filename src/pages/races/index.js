@@ -74,8 +74,11 @@ const Race = () => {
         throw new Error('API non disponible');
       }
 
-      // Créer la course avec le statut original
+      console.log('Données à importer:', raceData);
+
+      // Créer la course avec toutes les données originales
       const raceResult = await window.VGTiming.createRace({
+        id: raceData.race.id, // Conserver l'ID original
         name: raceData.race.name,
         date: raceData.race.date,
         time: raceData.race.time,
@@ -85,17 +88,21 @@ const Race = () => {
         durationType: raceData.race.durationType,
         maxParticipants: raceData.race.maxParticipants,
         description: raceData.race.description,
-        status: raceData.race.status || 'draft' // Préserver le statut original
+        status: 'draft', // Créer en draft puis mettre à jour après
+        createdAt: raceData.race.createdAt, // Conserver la date originale
+        updatedAt: raceData.race.updatedAt  // Conserver la date originale
       });
 
       if (!raceResult.success) {
         throw new Error(raceResult.error || 'Erreur lors de la création de la course');
       }
 
-      const newRaceId = raceResult.data.id;
+      const newRaceId = raceData.race.id; // Utiliser l'ID original depuis le JSON
       let participantsCount = 0;
       let participantsErrors = 0;
       let timingImported = 0;
+
+      console.log(`Course créée avec ID: ${newRaceId}`);
 
       // Ajouter les participants si présents
       if (raceData.participants && raceData.participants.length > 0) {
@@ -103,13 +110,22 @@ const Race = () => {
         
         for (const participant of raceData.participants) {
           try {
+            // Convertir isActive au bon format (de 1/0 vers true/false si nécessaire)
+            const isActive = participant.isActive === 1 ? true : 
+                            participant.isActive === 0 ? false : 
+                            Boolean(participant.isActive);
+            
             const participantResult = await window.VGTiming.createParticipant({
-              raceId: newRaceId,
+              id: participant.id, // Conserver l'ID original du participant
+              raceId: newRaceId, // Utiliser l'ID original de la course du JSON
               name: participant.name,
               number: String(participant.number), // Convertir en string
               team: participant.team || '',
               category: participant.category || 'Général',
-              epcTag: participant.epcTag || ''
+              epcTag: participant.epcTag || '',
+              isActive: isActive, // Utiliser la valeur convertie
+              createdAt: participant.createdAt, // Conserver la date originale
+              updatedAt: participant.updatedAt  // Conserver la date originale
             });
             
             if (participantResult.success) {
@@ -126,12 +142,12 @@ const Race = () => {
         }
       }
 
-      // Importer les données de timing directement dans la base de données
+      // Importer les données de timing directement AVANT les transitions de statut
       if (raceData.timingData && raceData.timingData.length > 0) {
         console.log(`Importation directe de ${raceData.timingData.length} données de timing...`);
         
         try {
-          // Utiliser une méthode directe d'insertion en base
+          // Utiliser la méthode directe d'insertion en base
           const timingImportResult = await window.VGTiming.importTimingDataDirect(newRaceId, raceData.timingData);
           if (timingImportResult.success) {
             timingImported = timingImportResult.data.imported || raceData.timingData.length;
@@ -141,6 +157,61 @@ const Race = () => {
           }
         } catch (timingError) {
           console.warn('✗ Erreur lors de l\'importation directe des données de timing:', timingError);
+        }
+      }
+
+      // Mettre à jour le statut de la course avec le statut original après l'importation des données
+      if (raceData.race.status && raceData.race.status !== 'draft') {
+        console.log(`Mise à jour du statut de la course vers: ${raceData.race.status}`);
+        try {
+          // Si le statut final est 'finished', suivre la chaîne de transitions autorisées
+          if (raceData.race.status === 'finished') {
+            console.log('Transition vers finished: draft → ready → in_progress → finished');
+            
+            // Vérifier que l'API est disponible
+            if (!window.VGTiming || typeof window.VGTiming.updateRaceStatus !== 'function') {
+              console.error('❌ API VGTiming non disponible ou méthode updateRaceStatus manquante');
+              throw new Error('API VGTiming non disponible');
+            }
+            
+            // 1. draft → ready
+            console.log('🔄 Passage en ready...');
+            const readyResult = await window.VGTiming.updateRaceStatus(newRaceId, 'ready');
+            if (!readyResult.success) {
+              console.warn('✗ Erreur lors du passage en ready:', readyResult.error);
+            } else {
+              console.log('✓ Statut ready appliqué');
+              
+              // 2. ready → in_progress
+              console.log('🔄 Passage en in_progress...');
+              const inProgressResult = await window.VGTiming.updateRaceStatus(newRaceId, 'in_progress');
+              if (!inProgressResult.success) {
+                console.warn('✗ Erreur lors du passage en in_progress:', inProgressResult.error);
+              } else {
+                console.log('✓ Statut in_progress appliqué');
+                
+                // 3. in_progress → finished
+                console.log('🔄 Passage en finished...');
+                const finishedResult = await window.VGTiming.updateRaceStatus(newRaceId, 'finished');
+                if (finishedResult.success) {
+                  console.log(`✓ Statut final appliqué: ${raceData.race.status}`);
+                } else {
+                  console.warn('✗ Erreur lors du passage en finished:', finishedResult.error);
+                }
+              }
+            }
+          } else {
+            // Pour les autres statuts, essayer la transition directe d'abord
+            console.log(`🔄 Tentative de transition directe vers: ${raceData.race.status}`);
+            const statusResult = await window.VGTiming.updateRaceStatus(newRaceId, raceData.race.status);
+            if (statusResult.success) {
+              console.log(`✓ Statut de la course mis à jour: ${raceData.race.status}`);
+            } else {
+              console.warn('✗ Erreur lors de la mise à jour du statut:', statusResult.error);
+            }
+          }
+        } catch (statusError) {
+          console.warn('✗ Erreur lors de la mise à jour du statut:', statusError.message || statusError);
         }
       }
 
@@ -155,8 +226,8 @@ const Race = () => {
       if (timingImported > 0) {
         successMessage += `\n• ${timingImported} donnée(s) de chronométrage importée(s)`;
       }
-      if (raceData.race.status === 'finished' && timingImported > 0) {
-        successMessage += `\n• Statut de la course préservé : Terminée`;
+      if (raceData.race.status) {
+        successMessage += `\n• Statut de la course : ${raceData.race.status}`;
       }
 
       // Notification de succès
@@ -164,6 +235,7 @@ const Race = () => {
         showToast(successMessage, participantsErrors > 0 ? 'warning' : 'success');
       }
 
+      console.log('✅ Importation terminée avec succès');
       setMode('list');
     } catch (error) {
       console.error('Erreur lors de l\'importation:', error);

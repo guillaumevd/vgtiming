@@ -30,7 +30,9 @@ const raceSchema = Joi.object({
   durationType: Joi.string().valid('Distance', 'Temps', 'Tours').optional(),
   maxParticipants: Joi.number().integer().min(1).optional(),
   description: Joi.string().max(1000).optional(),
-  status: Joi.string().valid('draft', 'ready', 'active', 'finishing', 'paused', 'finished', 'cancelled').optional()
+  status: Joi.string().valid('draft', 'ready', 'active', 'finishing', 'paused', 'finished', 'cancelled').optional(),
+  createdAt: Joi.string().isoDate().optional(), // Ajouter pour l'importation
+  updatedAt: Joi.string().isoDate().optional()  // Ajouter pour l'importation
 });
 
 // Validation pour un participant
@@ -42,7 +44,12 @@ const participantSchema = Joi.object({
   category: Joi.string().allow('').optional().default('Général'),
   team: Joi.string().allow('').optional(),
   epcTag: Joi.string().allow('').optional(),
-  isActive: Joi.boolean().optional().default(true)
+  isActive: Joi.alternatives().try(
+    Joi.boolean(),
+    Joi.number().valid(0, 1).custom((value) => Boolean(value))
+  ).optional().default(true),
+  createdAt: Joi.string().isoDate().optional(), // Ajouter pour l'importation
+  updatedAt: Joi.string().isoDate().optional()  // Ajouter pour l'importation
 }).unknown(false); // Rejeter les champs non définis
 
 // Validation pour des données de chronométrage
@@ -50,10 +57,22 @@ const timingDataSchema = Joi.object({
   id: Joi.string().optional(),
   raceId: Joi.string().required(),
   participantId: Joi.string().required(),
-  lapNumber: Joi.number().integer().min(1).required(),
-  lapTime: Joi.number().integer().min(1).required(), // en millisecondes
-  timestamp: Joi.date().optional(),
-  isManual: Joi.boolean().optional()
+  bibNumber: Joi.number().integer().optional(),
+  chipId: Joi.string().allow(null).optional(),
+  passings: Joi.array().items(Joi.object()).optional(),
+  startTime: Joi.string().isoDate().allow(null).optional(),
+  finishTime: Joi.string().isoDate().allow(null).optional(),
+  totalTime: Joi.number().integer().min(0).allow(null).optional(),
+  status: Joi.string().valid('registered', 'running', 'finished', 'dns', 'dnf').optional(),
+  position: Joi.number().integer().min(1).allow(null).optional(),
+  category: Joi.string().optional(),
+  notes: Joi.string().allow(null).optional(),
+  createdAt: Joi.string().isoDate().optional(),
+  updatedAt: Joi.string().isoDate().optional(),
+  // Champs additionnels pour l'affichage
+  participantName: Joi.string().optional(),
+  participantTeam: Joi.string().allow(null).optional(),
+  participantCategory: Joi.string().optional()
 });
 
 // Validation pour les paramètres

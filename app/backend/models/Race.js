@@ -12,7 +12,7 @@ class Race {
    */
   create(raceData) {
     const race = {
-      id: generateId(),
+      id: raceData.id || generateId(), // Utiliser l'ID fourni ou générer un nouveau
       name: raceData.name,
       date: raceData.date,
       time: raceData.time || null,
@@ -22,13 +22,13 @@ class Race {
       durationType: raceData.durationType || DURATION_TYPES.TIME,
       maxParticipants: raceData.maxParticipants || null,
       description: raceData.description || null,
-      status: RACE_STATUS.DRAFT,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      status: raceData.status || RACE_STATUS.DRAFT, // Utiliser le statut fourni ou DRAFT par défaut
+      createdAt: raceData.createdAt || new Date().toISOString(), // Utiliser la date fournie ou actuelle
+      updatedAt: raceData.updatedAt || new Date().toISOString()  // Utiliser la date fournie ou actuelle
     };
 
     const stmt = this.db.prepare(`
-      INSERT INTO races (
+      INSERT OR REPLACE INTO races (
         id, name, date, time, location, type, duration, durationType,
         maxParticipants, description, status, createdAt, updatedAt
       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)

@@ -1,5 +1,4 @@
 const { ipcMain } = require('electron');
-const { getBackendInstance } = require('../index');
 const logger = require('../utils/logger');
 
 class TimingIPCHandler {
@@ -84,8 +83,7 @@ class TimingIPCHandler {
     // Import timing data avec methode existante
     ipcMain.handle('timing:import', async (event, raceId, timingDataArray) => {
       try {
-        const backend = getBackendInstance();
-        const result = await backend.controllers.timing.importTimingData(raceId, timingDataArray);
+        const result = await this.timingController.importTimingData(raceId, timingDataArray);
         return result;
       } catch (error) {
         logger.error('Erreur lors de l\'importation des donnees de timing', {
@@ -99,8 +97,7 @@ class TimingIPCHandler {
     // Import timing data avec insertion directe en base
     ipcMain.handle('timing:importDirect', async (event, raceId, timingDataArray) => {
       try {
-        const backend = getBackendInstance();
-        const result = await backend.controllers.timing.importTimingDataDirect(raceId, timingDataArray);
+        const result = await this.timingController.importTimingDataDirect(raceId, timingDataArray);
         return result;
       } catch (error) {
         logger.error('Erreur lors de l\'importation directe des donnees de timing', {
