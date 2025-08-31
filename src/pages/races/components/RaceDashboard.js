@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { showToast } from '../../../utils/notifications';
+import ParticipantDetail from './ParticipantDetail';
 import './css/RaceDashboard.css';
 
 const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGoToTiming }) => {
@@ -9,6 +10,8 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
   const [loading, setLoading] = useState(true);
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [selectedParticipant, setSelectedParticipant] = useState(null);
+  const [viewMode, setViewMode] = useState('dashboard'); // 'dashboard' ou 'participant-detail'
   
   const printRef = useRef();
   
@@ -517,6 +520,42 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
     return statusMap[displayStatus] || 'draft';
   };
 
+  // Fonctions pour gérer la navigation vers les détails du participant
+  const handleParticipantClick = (participant) => {
+    if (raceData.status === 'finished' && timingData.length > 0) {
+      // Trouver les données de timing pour ce participant dans les données déjà chargées
+      const participantTimingData = timingData.find(td => 
+        td.participantId === participant.id || 
+        td.participantName === participant.name ||
+        td.participantName === `${participant.firstName} ${participant.lastName}` ||
+        td.bibNumber === participant.number ||
+        td.bibNumber === participant.bibNumber
+      );
+      
+      setSelectedParticipant({
+        ...participant,
+        timingData: participantTimingData
+      });
+      setViewMode('participant-detail');
+    }
+  };
+
+  const handleBackToDashboard = () => {
+    setSelectedParticipant(null);
+    setViewMode('dashboard');
+  };
+
+  // Si nous sommes en mode détail du participant, afficher le composant ParticipantDetail
+  if (viewMode === 'participant-detail' && selectedParticipant) {
+    return (
+      <ParticipantDetail
+        participant={selectedParticipant}
+        race={raceData}
+        onBack={handleBackToDashboard}
+      />
+    );
+  }
+
   return (
     <div className="race-dashboard-container">
       <div className="dashboard-header">
@@ -808,7 +847,13 @@ const RaceDashboard = ({ race, onBack, onRaceUpdated, onManageParticipants, onGo
                           {participant.bibNumber || participant.number}
                         </td>
                         <td className="participant-name">
-                          {participant.participantName || participant.name}
+                          <button
+                            className="participant-name-link"
+                            onClick={() => handleParticipantClick(participant)}
+                            title="Voir les détails du participant"
+                          >
+                            {participant.participantName || participant.name}
+                          </button>
                         </td>
                         <td className="category">
                           {participant.category || '-'}

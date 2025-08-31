@@ -738,6 +738,26 @@
   min-width: 150px;
 }
 
+.participant-name-link {
+  background: none;
+  border: none;
+  color: #63b3ed;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  font-size: inherit;
+  font-family: inherit;
+}
+
+.participant-name-link:hover {
+  background: rgba(99, 179, 237, 0.1);
+  color: #90cdf4;
+  text-decoration: underline;
+}
+
 .category {
   color: #a0aec0;
   font-size: 0.875rem;

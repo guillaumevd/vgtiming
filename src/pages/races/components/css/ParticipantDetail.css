@@ -1,0 +1,240 @@
+/* Participant Detail - Utilise les styles existants de l'application */
+
+/* Titre centré */
+.participant-detail-title {
+  text-align: center !important;
+  flex: 1;
+  margin: 0 1rem;
+}
+
+/* Styles spécifiques uniquement pour les éléments uniques */
+.participant-detail-chart {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 1.5rem;
+  height: 400px;
+  display: flex;
+  flex-direction: column;
+}
+
+.participant-detail-chart h3 {
+  margin: 0 0 1rem 0;
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.chart-container {
+  flex: 1;
+  position: relative;
+  min-height: 300px;
+  height: 300px;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.timing-data-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.timing-list {
+  background: #2d3748;
+  border-radius: 8px;
+  padding: 1.5rem;
+  height: 400px;
+  overflow-y: auto;
+}
+
+.timing-list h3 {
+  margin: 0 0 1rem 0;
+  color: #e2e8f0;
+  font-size: 1.2rem;
+  font-weight: 600;
+}
+
+.timing-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+  background: #1a202c;
+  border-radius: 6px;
+  border-left: 3px solid #63b3ed;
+  transition: all 0.2s ease;
+}
+
+.timing-item:hover {
+  background: rgba(99, 179, 237, 0.1);
+  transform: translateX(4px);
+}
+
+.timing-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.timing-item-lap {
+  font-weight: 600;
+  color: #63b3ed;
+  font-size: 0.9rem;
+}
+
+.timing-item-time {
+  font-family: 'Courier New', monospace;
+  color: #e2e8f0;
+  font-size: 0.85rem;
+}
+
+.timing-item-duration {
+  font-family: 'Courier New', monospace;
+  color: #a0aec0;
+  font-size: 0.85rem;
+}
+
+.timing-item-values {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.timing-item-lap-time {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #48bb78;
+  font-size: 0.9rem;
+}
+
+.timing-item-total {
+  font-family: 'Courier New', monospace;
+  color: #a0aec0;
+  font-size: 0.8rem;
+}
+
+.timing-table {
+  background: #2d3748;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.timing-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.timing-table th {
+  background: #1a202c;
+  color: #a0aec0;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-bottom: 1px solid #4a5568;
+}
+
+.timing-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #4a5568;
+  font-family: 'Courier New', monospace;
+}
+
+.timing-table tbody tr:hover {
+  background: rgba(99, 179, 237, 0.1);
+}
+
+.participant-number-large {
+  background: linear-gradient(135deg, #63b3ed, #3182ce);
+  color: white;
+  font-size: 2rem;
+  font-weight: bold;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.participant-meta-badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.participant-meta-badges .badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-category {
+  background: rgba(99, 179, 237, 0.2);
+  color: #90cdf4;
+  border: 1px solid #63b3ed;
+}
+
+.badge-team {
+  background: rgba(159, 122, 234, 0.2);
+  color: #d6bcfa;
+  border: 1px solid #9f7aea;
+}
+
+.badge-status {
+  padding: 0.5rem 1rem;
+  border-radius: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-status.finished {
+  background: rgba(72, 187, 120, 0.2);
+  color: #48bb78;
+  border: 1px solid #48bb78;
+}
+
+.badge-status.running {
+  background: rgba(237, 137, 54, 0.2);
+  color: #ed8936;
+  border: 1px solid #ed8936;
+}
+
+.position-display {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.position-number {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.3);
+}
+
+.position-text {
+  font-size: 1.2rem;
+  color: #a0aec0;
+  margin-top: 0.5rem;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .timing-data-section {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .timing-list,
+  .participant-detail-chart {
+    height: auto;
+    min-height: 300px;
+  }
+}
