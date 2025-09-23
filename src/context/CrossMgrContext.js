@@ -26,9 +26,48 @@ export const CrossMgrProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastError, setLastError] = useState(null);
 
-  // Vérifier le statut de connexion au chargement uniquement
+  // Vérifier le statut de connexion au chargement et gérer l'auto-démarrage
   useEffect(() => {
     checkConnectionStatus();
+    
+    // Vérifier l'auto-démarrage après un délai pour s'assurer que l'API est prête
+    const checkAutoStart = async () => {
+      try {
+        console.log('CrossMgr: Vérification de l\'auto-démarrage...');
+        console.log('CrossMgr: VGTiming disponible?', !!window.VGTiming);
+        console.log('CrossMgr: VGTiming.getSetting disponible?', !!window.VGTiming?.getSetting);
+        
+        if (window.VGTiming?.getSetting) {
+          const result = await window.VGTiming.getSetting('crossmgrAutoStart');
+          console.log('CrossMgr: Résultat getSetting crossmgrAutoStart:', result);
+          
+          // Le backend retourne { success: true, data: value }, pas { success: true, value: ... }
+          if (result?.success && result.data === true) {
+            console.log('CrossMgr: Auto-démarrage activé, lancement de la connexion...');
+            await connect();
+          } else {
+            console.log('CrossMgr: Auto-démarrage désactivé ou erreur:', result);
+          }
+        } else {
+          console.error('CrossMgr: API getSetting non disponible');
+        }
+      } catch (error) {
+        console.error('CrossMgr: Erreur lors de la vérification de l\'auto-démarrage:', error);
+      }
+    };
+
+    // Attendre que l'API soit prête avant de vérifier l'auto-démarrage
+    if (window.VGTiming?.isReady) {
+      // Attendre un peu pour s'assurer que tout est initialisé
+      setTimeout(checkAutoStart, 1000);
+    } else {
+      const handleAPIReady = () => {
+        // Attendre un peu après que l'API soit prête
+        setTimeout(checkAutoStart, 1000);
+        window.removeEventListener('vgtiming-ready', handleAPIReady);
+      };
+      window.addEventListener('vgtiming-ready', handleAPIReady);
+    }
     
     // Écouter les événements de changement d'état automatique
     const handleCrossMgrConnected = (event, data) => {
@@ -104,12 +143,12 @@ export const CrossMgrProvider = ({ children }) => {
     let intervalId = null;
     
     if (connectionStatus === CROSSMGR_STATUS.CONNECTING) {
-      // Vérifier le statut toutes les 2 secondes quand en attente de connexion
+      // Vérifier le statut toutes les 10 secondes quand en attente de connexion (réduit le spam de logs)
       console.log('CrossMgr frontend: starting periodic check while CONNECTING');
       intervalId = setInterval(async () => {
-        console.log('CrossMgr frontend: periodic check...');
+        // Log moins verbeux pour éviter le spam
         await checkConnectionStatus();
-      }, 2000);
+      }, 10000); // 10 secondes au lieu de 2
     }
     
     return () => {
@@ -122,7 +161,7 @@ export const CrossMgrProvider = ({ children }) => {
 
   const checkConnectionStatus = async () => {
     try {
-      console.log('CrossMgr frontend: checking connection status...');
+      // Log supprimé pour éviter le spam - vérifie le statut en silence
       const result = await window.electronAPI.crossmgrStatus();
       if (result.success && result.data) {
         const { isListening, isConnected } = result.data;

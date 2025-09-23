@@ -134,6 +134,20 @@ class CrossMgrController {
   }
 
   /**
+   * Mettre à jour les paramètres CrossMgr
+   */
+  async updateSettings() {
+    try {
+      await this.crossMgrService.updateSettings();
+      logger.info('CrossMgr: Paramètres mis à jour');
+      return { success: true };
+    } catch (error) {
+      logger.error('CrossMgr: Erreur mise à jour paramètres', { error: error.message });
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
    * Nettoyer les ressources
    */
   async cleanup() {

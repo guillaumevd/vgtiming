@@ -7,7 +7,7 @@ const logger = require('../utils/logger');
  * Gère la communication TCP avec CrossMgr sur 127.0.0.1:53135
  */
 class CrossMgrService extends EventEmitter {
-  constructor(mainWindow = null) {
+  constructor(mainWindow = null, settingsService = null) {
     super();
     this.server = null;
     this.client = null;
@@ -15,12 +15,45 @@ class CrossMgrService extends EventEmitter {
     this.isListening = false;
     this.host = '127.0.0.1';
     this.port = 53135;
+    this.timeout = 5000;
     this.reconnectTimeout = null;
-    this.reconnectInterval = 5000; // 5 secondes
-    this.maxReconnectAttempts = 10;
+    this.reconnectInterval = 3000; // Par défaut 3 secondes
+    this.maxReconnectAttempts = 5; // Par défaut 5 tentatives
     this.reconnectAttempts = 0;
     this.mainWindow = mainWindow; // Pour envoyer directement au frontend
+    this.settingsService = settingsService; // Pour récupérer les paramètres
     // Pas de keepAliveTimer - connexion maintenue indéfiniment
+  }
+
+  /**
+   * Mettre à jour les paramètres de connexion
+   */
+  async updateSettings() {
+    try {
+      if (this.settingsService) {
+        const host = await this.settingsService.getSetting('crossmgrHost');
+        const port = await this.settingsService.getSetting('crossmgrPort');
+        const timeout = await this.settingsService.getSetting('crossmgrTimeout');
+        const retryInterval = await this.settingsService.getSetting('crossmgrRetryInterval');
+        const maxRetries = await this.settingsService.getSetting('crossmgrMaxRetries');
+
+        this.host = host?.value || '127.0.0.1';
+        this.port = port?.value || 53135;
+        this.timeout = timeout?.value || 5000;
+        this.reconnectInterval = retryInterval?.value || 3000;
+        this.maxReconnectAttempts = maxRetries?.value || 5;
+
+        logger.debug('CrossMgr: Paramètres mis à jour', {
+          host: this.host,
+          port: this.port,
+          timeout: this.timeout,
+          reconnectInterval: this.reconnectInterval,
+          maxReconnectAttempts: this.maxReconnectAttempts
+        });
+      }
+    } catch (error) {
+      logger.warn('CrossMgr: Erreur lors de la mise à jour des paramètres, utilisation des valeurs par défaut', error);
+    }
   }
 
   /**
@@ -50,6 +83,9 @@ class CrossMgrService extends EventEmitter {
    */
   async startListening() {
     try {
+      // Mettre à jour les paramètres avant de démarrer
+      await this.updateSettings();
+
       if (this.isListening) {
         logger.warn('CrossMgr: Serveur déjà en écoute', { port: this.port });
         return true;

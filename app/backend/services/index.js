@@ -73,7 +73,7 @@ class ServiceFactory {
    */
   getCrossMgrService() {
     if (!this._services.crossmgr) {
-      this._services.crossmgr = new CrossMgrService(this.mainWindow);
+      this._services.crossmgr = new CrossMgrService(this.mainWindow, this.getSettingsService());
     }
     return this._services.crossmgr;
   }

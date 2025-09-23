@@ -1,18 +1,5 @@
 /* Participant Detail - Utilise les styles existants de l'application */
 
-/* Titre centré - Override du style existant */
-.dashboard-header h1.participant-detail-title {
-  text-align: center !important;
-  flex: 1 !important;
-  margin: 0 1rem !important;
-  color: #e2e8f0 !important;
-  font-weight: 600 !important;
-  font-size: 2rem !important;
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-}
-
 /* Styles spécifiques uniquement pour les éléments uniques */
 .participant-detail-chart {
   background: #2d3748;
@@ -47,6 +34,7 @@
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
   margin-bottom: 2rem;
+  overflow: hidden;
 }
 
 .timing-list {
@@ -55,6 +43,7 @@
   padding: 1.5rem;
   height: 400px;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .timing-list h3 {
@@ -78,7 +67,8 @@
 
 .timing-item:hover {
   background: rgba(99, 179, 237, 0.1);
-  transform: translateX(4px);
+  border-left-color: #90cdf4;
+  box-shadow: 0 2px 8px rgba(99, 179, 237, 0.2);
 }
 
 .timing-item-info {

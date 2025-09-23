@@ -470,7 +470,7 @@ const ParticipantDetail = ({ race, participant, onBack }) => {
                   <i className="fas fa-list"></i>
                   Détail des tours ({passagesData.length})
                 </h3>
-                <div style={{maxHeight: '320px', overflowY: 'auto'}}>
+                <div style={{maxHeight: '320px', overflowY: 'auto', overflowX: 'hidden'}}>
                   {passagesData.map((passage, index) => (
                     <div key={passage.id || index} className="timing-item">
                       <div className="timing-item-info">

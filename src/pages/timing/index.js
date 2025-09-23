@@ -23,8 +23,7 @@ const Timing = () => {
   const [refreshInterval, setRefreshInterval] = useState(null);
   const [settings, setSettings] = useState({
     displayType: 'list',
-    sortType: 'bestLap',
-    refreshRate: 1000
+    sortType: 'bestLap'
   });
 
   // Utiliser le contexte CrossMgr au lieu de l'état local
@@ -222,8 +221,7 @@ const Timing = () => {
         // Mettre à jour les paramètres avec les valeurs par défaut si nécessaire
         const timingSettings = {
           displayType: loadedSettings.displayType || 'list',
-          sortType: loadedSettings.sortType || 'bestLap', 
-          refreshRate: loadedSettings.refreshRate || 1000
+          sortType: loadedSettings.sortType || 'bestLap'
         };
 
         setSettings(timingSettings);

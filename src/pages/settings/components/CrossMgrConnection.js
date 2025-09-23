@@ -10,6 +10,7 @@ const DEFAULT_CROSSMGR_SETTINGS = {
   crossmgrHost: 'localhost',
   crossmgrPort: 53135,
   crossmgrAutoConnect: false,
+  crossmgrAutoStart: false,
   crossmgrTimeout: 5000,
   crossmgrRetryInterval: 3000,
   crossmgrMaxRetries: 5
@@ -115,6 +116,13 @@ const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
     onSettingChange(key, value);
     onLog(`Paramètre CrossMgr modifié: ${key} = ${value}`, 'info');
+    
+    // Mettre à jour les paramètres du service CrossMgr
+    if (window.electronAPI) {
+      window.electronAPI.invoke('crossmgr:updateSettings').catch(error => {
+        console.error('Erreur mise à jour paramètres CrossMgr:', error);
+      });
+    }
   };
 
   const handleConnect = async () => {
@@ -236,6 +244,24 @@ const CrossMgrConnection = ({ settings, onSettingChange, onLog }) => {
           />
           <p className="crossmgr-description">
             Nombre de tentatives de reconnexion avant d'abandonner
+          </p>
+        </div>
+
+        <div className="crossmgr-setting-group crossmgr-checkbox-group">
+          <div className="crossmgr-checkbox-container">
+            <input
+              id="crossmgrAutoStart"
+              type="checkbox"
+              className="crossmgr-checkbox"
+              checked={localSettings.crossmgrAutoStart}
+              onChange={(e) => handleChange('crossmgrAutoStart', e.target.checked)}
+            />
+            <label htmlFor="crossmgrAutoStart" className="crossmgr-checkbox-label">
+              Lancer l'attente de connexion au démarrage
+            </label>
+          </div>
+          <p className="crossmgr-description">
+            Démarre automatiquement l'attente de connexion CrossMgr lors du lancement de l'application
           </p>
         </div>
       </div>

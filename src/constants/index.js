@@ -37,8 +37,7 @@ export const APP_INFO = {
 export const DEFAULT_CONFIG = {
   main: {
     sortType: SORT_TYPES.BEST_LAP,
-    autoSave: true,
-    refreshRate: 1000
+    autoSave: true
   },
   display: {
     format: '${person}: ${totalLaps} laps (Last Lap: ${lastLap}, Best: ${bestLap})',

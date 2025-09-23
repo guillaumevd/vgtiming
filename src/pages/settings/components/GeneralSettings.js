@@ -6,12 +6,9 @@ const DEFAULT_SETTINGS = {
   outputDir: '',
   displayType: 'grid',
   sortType: 'bestLap',
-  refreshRate: 1000,
   theme: 'dark',
   language: 'fr',
   maxLogs: 100,
-  enableNotifications: true,
-  soundAlerts: false,
   minimizeToTray: true,
   startWithWindows: false
 };
@@ -42,11 +39,6 @@ const GeneralSettings = ({ settings, onSettingChange, onLog }) => {
     setLocalSettings(prev => ({ ...prev, [key]: value }));
     onSettingChange(key, value);
     onLog(`Paramètre modifié: ${key} = ${value}`, 'info');
-  };
-
-  const handleRefreshRateChange = (value) => {
-    const rate = Math.max(100, Math.min(5000, parseInt(value) || 1000));
-    handleChange('refreshRate', rate);
   };
 
   const handleBrowse = async () => {
@@ -132,59 +124,6 @@ const GeneralSettings = ({ settings, onSettingChange, onLog }) => {
           </select>
           <p className="setting-description">
             Critère de tri utilisé par défaut pour l'affichage des résultats
-          </p>
-        </div>
-
-        <div className="setting-group">
-          <label htmlFor="refreshRate" className="setting-label">
-            Taux de rafraîchissement (ms)
-          </label>
-          <input
-            id="refreshRate"
-            type="number"
-            className="setting-input"
-            min="100"
-            max="5000"
-            step="100"
-            value={localSettings.refreshRate}
-            onChange={(e) => handleRefreshRateChange(e.target.value)}
-          />
-          <p className="setting-description">
-            Fréquence de mise à jour de l'affichage en millisecondes
-          </p>
-        </div>
-
-        <div className="setting-group">
-          <div className="checkbox-container">
-            <input
-              id="enableNotifications"
-              type="checkbox"
-              className="setting-checkbox"
-              checked={localSettings.enableNotifications}
-              onChange={(e) => handleChange('enableNotifications', e.target.checked)}
-            />
-            <label htmlFor="enableNotifications" className="setting-label">
-              Notifications système
-            </label>
-          </div>
-          <p className="setting-description">
-            Affiche des notifications pour les événements importants
-          </p>
-        </div>
-
-        <div className="setting-group">
-          <div className="checkbox-container">
-            <input
-              id="soundAlerts"
-              type="checkbox"
-              className="setting-checkbox"
-              checked={localSettings.soundAlerts}
-              onChange={(e) => handleChange('soundAlerts', e.target.checked)}
-            />
-            <label htmlFor="soundAlerts" className="setting-label">Alertes sonores</label>
-          </div>
-          <p className="setting-description">
-            Joue des sons pour les événements de chronométrage
           </p>
         </div>
       </div>

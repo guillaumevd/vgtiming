@@ -153,7 +153,7 @@ class CrossMgrIPCHandler {
     // Obtenir le statut de la connexion
     ipcMain.handle('crossmgr:status', async (event) => {
       try {
-        logger.debug('IPC: crossmgr:status');
+        // Log supprimé pour éviter le spam - appelé fréquemment par le frontend
         const result = this.crossMgrController.getConnectionStatus();
         return result;
       } catch (error) {
@@ -170,6 +170,18 @@ class CrossMgrIPCHandler {
         return result;
       } catch (error) {
         logger.error('IPC crossmgr:send error:', error);
+        return { success: false, error: error.message };
+      }
+    });
+
+    // Mettre à jour les paramètres CrossMgr
+    ipcMain.handle('crossmgr:updateSettings', async (event) => {
+      try {
+        logger.debug('IPC: crossmgr:updateSettings');
+        const result = await this.crossMgrController.updateSettings();
+        return result;
+      } catch (error) {
+        logger.error('IPC crossmgr:updateSettings error:', error);
         return { success: false, error: error.message };
       }
     });

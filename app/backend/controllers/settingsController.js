@@ -11,6 +11,7 @@ class SettingsController {
   async getSetting(key) {
     try {
       const value = await this.settingsService.getSetting(key);
+      logger.debug(`getSetting(${key}) returned:`, value);
       return { success: true, data: value };
     } catch (error) {
       logger.error('SettingsController.getSetting:', error);
