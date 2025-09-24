@@ -1,7 +1,105 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { DEFAULT_PARTICIPANT } from '../../../constants/raceConstants';
 import { showToast } from '../../../utils/notifications';
 import './css/Participants.css';
+
+// Composant ParticipantForm extrait pour éviter les re-renders
+const ParticipantForm = ({ 
+  participant, 
+  onChange, 
+  isEditing = false, 
+  errors = {}, 
+  onCancel, 
+  onSave 
+}) => (
+  <div className="participant-form">
+    <div className="row">
+      <div className="col-md-6">
+        <div className="form-group">
+          <label>Nom *</label>
+          <input
+            type="text"
+            className={`form-control ${errors.name ? 'is-invalid' : ''}`}
+            value={participant.name || ''}
+            onChange={(e) => onChange({ ...participant, name: e.target.value })}
+            placeholder="Nom du participant"
+          />
+          {errors.name && <div className="invalid-feedback">{errors.name}</div>}
+        </div>
+      </div>
+      
+      <div className="col-md-3">
+        <div className="form-group">
+          <label>Numéro *</label>
+          <input
+            type="text"
+            className={`form-control ${errors.number ? 'is-invalid' : ''}`}
+            value={participant.number || ''}
+            onChange={(e) => onChange({ ...participant, number: e.target.value })}
+            placeholder="N°"
+          />
+          {errors.number && <div className="invalid-feedback">{errors.number}</div>}
+        </div>
+      </div>
+      
+      <div className="col-md-3">
+        <div className="form-group">
+          <label>Catégorie</label>
+          <input
+            type="text"
+            className="form-control"
+            value={participant.category || ''}
+            onChange={(e) => onChange({ ...participant, category: e.target.value })}
+            placeholder="Ex: Senior"
+          />
+        </div>
+      </div>
+    </div>
+    
+    <div className="row">
+      <div className="col-md-6">
+        <div className="form-group">
+          <label>Tag EPC (CrossMGR)</label>
+          <input
+            type="text"
+            className={`form-control ${errors.epcTag ? 'is-invalid' : ''}`}
+            value={participant.epcTag || ''}
+            onChange={(e) => {
+              const value = e.target.value.toUpperCase();
+              onChange({ ...participant, epcTag: value });
+            }}
+            placeholder="Ex: E200001234567890"
+            style={{ fontFamily: 'monospace' }}
+          />
+          {errors.epcTag && <div className="invalid-feedback">{errors.epcTag}</div>}
+          <small className="form-text text-muted">Format hexadécimal (sera automatiquement en majuscules)</small>
+        </div>
+      </div>
+      
+      <div className="col-md-6">
+        <div className="form-group">
+          <label>Équipe</label>
+          <input
+            type="text"
+            className="form-control"
+            value={participant.team || ''}
+            onChange={(e) => onChange({ ...participant, team: e.target.value })}
+            placeholder="Nom de l'équipe"
+          />
+        </div>
+      </div>
+    </div>
+    
+    <div className="form-actions">
+      <button type="button" className="race-button secondary" onClick={onCancel}>
+        Annuler
+      </button>
+      <button type="button" className="race-button primary" onClick={onSave}>
+        {isEditing ? 'Sauvegarder' : 'Ajouter'}
+      </button>
+    </div>
+  </div>
+);
 
 const Participants = ({ race, onBack, onSave }) => {
   const [participants, setParticipants] = useState([]);
@@ -216,106 +314,6 @@ const Participants = ({ race, onBack, onSave }) => {
     onSave(race);
   };
 
-  const ParticipantForm = ({ participant, onChange, isEditing = false }) => (
-    <div className="participant-form">
-      <div className="row">
-        <div className="col-md-6">
-          <div className="form-group">
-            <label>Nom *</label>
-            <input
-              type="text"
-              className={`form-control ${errors.name ? 'is-invalid' : ''}`}
-              value={participant.name || ''}
-              onChange={(e) => onChange({ ...participant, name: e.target.value })}
-              placeholder="Nom du participant"
-            />
-            {errors.name && <div className="invalid-feedback">{errors.name}</div>}
-          </div>
-        </div>
-        
-        <div className="col-md-3">
-          <div className="form-group">
-            <label>Numéro *</label>
-            <input
-              type="text"
-              className={`form-control ${errors.number ? 'is-invalid' : ''}`}
-              value={participant.number || ''}
-              onChange={(e) => onChange({ ...participant, number: e.target.value })}
-              placeholder="N°"
-            />
-            {errors.number && <div className="invalid-feedback">{errors.number}</div>}
-          </div>
-        </div>
-        
-        <div className="col-md-3">
-          <div className="form-group">
-            <label>Catégorie</label>
-            <input
-              type="text"
-              className="form-control"
-              value={participant.category || ''}
-              onChange={(e) => onChange({ ...participant, category: e.target.value })}
-              placeholder="Ex: Senior"
-            />
-          </div>
-        </div>
-      </div>
-      
-      <div className="row">
-        <div className="col-md-6">
-          <div className="form-group">
-            <label>Tag EPC (CrossMGR)</label>
-            <input
-              type="text"
-              className={`form-control ${errors.epcTag ? 'is-invalid' : ''}`}
-              value={participant.epcTag || ''}
-              onChange={(e) => onChange({ ...participant, epcTag: e.target.value.toUpperCase() })}
-              placeholder="Ex: E200001234567890"
-              style={{ fontFamily: 'monospace' }}
-            />
-            {errors.epcTag && <div className="invalid-feedback">{errors.epcTag}</div>}
-            <small className="form-text text-muted">Format hexadécimal (sera automatiquement en majuscules)</small>
-          </div>
-        </div>
-        
-        <div className="col-md-6">
-          <div className="form-group">
-            <label>Équipe</label>
-            <input
-              type="text"
-              className="form-control"
-              value={participant.team || ''}
-              onChange={(e) => onChange({ ...participant, team: e.target.value })}
-              placeholder="Nom de l'équipe"
-            />
-          </div>
-        </div>
-      </div>
-      
-      <div className="form-actions">
-        {isEditing ? (
-          <>
-            <button type="button" className="race-button secondary" onClick={() => setEditingParticipant(null)}>
-              Annuler
-            </button>
-            <button type="button" className="race-button primary" onClick={handleSaveEdit}>
-              Sauvegarder
-            </button>
-          </>
-        ) : (
-          <>
-            <button type="button" className="race-button secondary" onClick={() => setShowAddForm(false)}>
-              Annuler
-            </button>
-            <button type="button" className="race-button primary" onClick={handleAddParticipant}>
-              Ajouter
-            </button>
-          </>
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <div className="participants-container">
       <div className="race-list-header">
@@ -343,6 +341,9 @@ const Participants = ({ race, onBack, onSave }) => {
             <ParticipantForm 
                 participant={newParticipant}
                 onChange={setNewParticipant}
+                errors={errors}
+                onCancel={() => setShowAddForm(false)}
+                onSave={handleAddParticipant}
               />
             </div>
           )}
@@ -355,6 +356,9 @@ const Participants = ({ race, onBack, onSave }) => {
                 participant={editingParticipant}
                 onChange={setEditingParticipant}
                 isEditing={true}
+                errors={errors}
+                onCancel={() => setEditingParticipant(null)}
+                onSave={handleSaveEdit}
               />
             </div>
           )}
@@ -390,7 +394,7 @@ const Participants = ({ race, onBack, onSave }) => {
                 <table className="table">
                   <thead>
                     <tr>
-                      <th>N°</th>
+                      <th># N°</th>
                       <th>Nom</th>
                       <th>Catégorie</th>
                       <th>Équipe</th>

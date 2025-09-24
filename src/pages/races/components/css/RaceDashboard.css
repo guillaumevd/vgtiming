@@ -685,6 +685,46 @@
   border-bottom: 2px solid #2d3748;
 }
 
+/* Alignement des en-têtes avec leurs colonnes */
+.results-table th:nth-child(1) { /* Position */
+  text-align: center;
+  width: 60px;
+}
+
+.results-table th:nth-child(2) { /* Dossard */
+  text-align: center;
+  width: 80px;
+}
+
+.results-table th:nth-child(3) { /* Nom */
+  text-align: left;
+  min-width: 150px;
+}
+
+.results-table th:nth-child(4) { /* Catégorie */
+  text-align: left;
+}
+
+.results-table th:nth-child(5) { /* Tours */
+  text-align: center;
+}
+
+.results-table th:nth-child(6) { /* Temps total */
+  text-align: right;
+}
+
+.results-table th:nth-child(7) { /* Écart */
+  text-align: right;
+}
+
+.results-table th:nth-child(8) { /* Meilleur tour */
+  text-align: right;
+}
+
+.results-table th:nth-child(9) { /* Statut */
+  text-align: center;
+}
+
 .results-table td {
   padding: 0.875rem 0.75rem;
   border-bottom: 1px solid #4a5568;
@@ -736,6 +776,18 @@
 .participant-name {
   font-weight: 600;
   min-width: 150px;
+  text-align: left;
+}
+
+.category {
+  color: #a0aec0;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.laps {
+  text-align: center;
+  font-weight: 600;
 }
 
 .participant-name-link {
@@ -756,16 +808,6 @@
   background: rgba(99, 179, 237, 0.1);
   color: #90cdf4;
   text-decoration: underline;
-}
-
-.category {
-  color: #a0aec0;
-  font-size: 0.875rem;
-}
-
-.laps {
-  text-align: center;
-  font-weight: 600;
 }
 
 .total-time,

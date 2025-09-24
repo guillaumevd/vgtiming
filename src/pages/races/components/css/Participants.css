@@ -104,9 +104,24 @@
   border-radius: 8px;
   padding: 12px 16px;
   font-size: 0.95rem;
-  transition: all 0.3s ease;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
   background-color: #1a202c;
   color: #e2e8f0;
+}
+
+.participant-form .form-control::placeholder {
+  color: #a0aec0;
+  opacity: 1;
+}
+
+.participant-form .form-control::-webkit-input-placeholder {
+  color: #a0aec0;
+  opacity: 1;
+}
+
+.participant-form .form-control::-moz-placeholder {
+  color: #a0aec0;
+  opacity: 1;
 }
 
 .participant-form .form-control:focus {
@@ -126,6 +141,16 @@
   font-size: 0.875rem;
   margin-top: 5px;
   display: block;
+}
+
+.participant-form .form-text {
+  color: #e2e8f0;
+  font-size: 0.875rem;
+  margin-top: 5px;
+}
+
+.participant-form .text-muted {
+  color: #e2e8f0 !important;
 }
 
 .participants-list {
@@ -165,6 +190,8 @@
   border-radius: 8px;
   overflow: hidden;
   border: 2px solid #4a5568;
+  border-collapse: collapse;
+  width: 100%;
 }
 
 .table thead th {
@@ -178,31 +205,69 @@
   letter-spacing: 0.5px;
 }
 
+.table thead th:first-child {
+  padding-left: 20px;
+}
+
+.table thead th:last-child {
+  text-align: right;
+  padding-right: 12px;
+  padding-left: 8px;
+  width: 300px;
+}
+
 .table tbody td {
   padding: 15px 12px;
   vertical-align: middle;
   border-bottom: 1px solid #4a5568;
+  border-left: none;
+  border-right: none;
+  border-top: none;
   color: #e2e8f0;
   background-color: #2d3748;
+  height: 60px;
 }
 
-.table tbody tr:hover {
+/* Specific alignment for status and actions columns */
+.table tbody td:nth-last-child(2),
+.table tbody td:last-child {
+  vertical-align: middle;
+  display: table-cell;
+}
+
+.table tbody td:last-child {
+  text-align: right;
+  padding-right: 12px;
+  padding-left: 8px;
+  width: 300px;
+}
+
+.table tbody tr:hover td {
   background-color: #4a5568;
 }
 
-.table tbody tr.inactive {
+.table tbody tr.inactive td {
   opacity: 0.6;
   background-color: #374151;
 }
 
-.table tbody tr.inactive:hover {
+.table tbody tr.inactive:hover td {
   background-color: #4a5568;
 }
 
-.participant-number {
-  font-weight: 700;
-  color: #63b3ed;
-  font-size: 1.1rem;
+.participants-container .participant-number {
+  font-weight: 600;
+  color: #a0aec0;
+  font-size: 0.95rem;
+  background-color: #2d3748;
+  border-radius: 0;
+  width: auto;
+  height: auto;
+  display: table-cell;
+  border: none;
+  border-bottom: 1px solid #4a5568;
+  padding-left: 20px;
+  letter-spacing: 0.3px;
 }
 
 .participant-name {
@@ -213,19 +278,28 @@
 .epc-tag {
   font-family: 'Courier New', monospace;
   font-size: 0.9rem;
-  background-color: #4a5568;
-  padding: 4px 8px;
-  border-radius: 4px;
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
   color: #e2e8f0;
 }
 
 .status-badge {
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
   border-radius: 15px;
   font-size: 0.8rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  height: 32px;
+  min-width: 60px;
+  justify-content: center;
+  line-height: 1;
+  border-width: 1px;
+  min-height: 32px;
+  box-sizing: border-box;
 }
 
 .status-badge.active {
@@ -448,8 +522,32 @@
 /* Actions column */
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   justify-content: flex-end;
+  padding-right: 0;
+  padding-left: 0;
+  align-items: center;
+  width: 100%;
+  text-align: right;
+}
+
+.actions .race-button.btn-sm {
+  height: 32px;
+  padding: 5px 12px;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  border-width: 1px;
+  min-height: 32px;
+  box-sizing: border-box;
+  margin-left: 0;
+  flex-shrink: 0;
+}
+
+.actions .race-button.btn-sm:not(:first-child) {
+  margin-left: 6px;
 }
 
 .footer-actions {
@@ -495,6 +593,22 @@
   
   .actions {
     flex-direction: column;
+    padding-right: 0;
+    padding-left: 0;
+    gap: 8px;
+    justify-content: center;
+    align-items: stretch;
+  }
+  
+  .actions .race-button.btn-sm {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .table tbody td:last-child {
+    width: 220px;
+    padding-right: 8px;
+    padding-left: 4px;
   }
   
   .actions .btn-unified {
@@ -509,6 +623,21 @@
   .table tbody td {
     padding: 10px 8px;
   }
+  
+  .participants-container .participant-number {
+    padding-left: 12px;
+    font-size: 0.9rem;
+  }
+  
+  .table thead th:first-child {
+    padding-left: 12px;
+  }
+  
+  .table thead th:last-child {
+    padding-right: 8px;
+    padding-left: 4px;
+    width: 220px;
+  }
 }
 
 @media (max-width: 576px) {
@@ -519,5 +648,45 @@
   .participant-form .row > [class*="col-"] {
     padding: 0;
     margin-bottom: 15px;
+  }
+  
+  .participants-container .participant-number {
+    padding-left: 8px;
+    font-size: 0.85rem;
+  }
+  
+  .table thead th:first-child {
+    padding-left: 8px;
+  }
+  
+  .table thead th:last-child {
+    padding-right: 8px;
+  }
+  
+  .table thead th:last-child {
+    padding-right: 6px;
+    padding-left: 2px;
+    width: 150px;
+  }
+  
+  .actions {
+    padding-right: 0;
+    padding-left: 0;
+    gap: 6px;
+    justify-content: center;
+    align-items: stretch;
+  }
+  
+  .actions .race-button.btn-sm {
+    margin-left: 0;
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 4px 8px;
+  }
+  
+  .table tbody td:last-child {
+    width: 150px;
+    padding-right: 6px;
+    padding-left: 2px;
   }
 }
